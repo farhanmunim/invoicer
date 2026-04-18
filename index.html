@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Invoicer — farhan.app</title>
+  <meta name="author" content="farhan.app" />
+  <meta name="description" content="Create, edit, and download professional invoices as PDF — client-side, no account, no tracking. Built by Farhan — farhan.app" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234338ca'/%3E%3Cstop offset='1' stop-color='%230f172a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3C/svg%3E" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Invoicer" />
+  <meta property="og:title" content="Invoicer — farhan.app" />
+  <meta property="og:description" content="Create and export professional invoices as PDF — fully client-side, private, no account needed." />
+  <meta property="og:url" content="https://invoicer.farhan.app/" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Invoicer — farhan.app" />
+  <meta name="twitter:description" content="Create, edit, and download professional invoices as PDF. Built by Farhan — farhan.app" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="app">
+  <header class="toolbar" role="banner">
+    <div class="toolbar__brand">
+      <span class="toolbar__logo" aria-hidden="true"></span>
+      <span class="toolbar__name">Invoicer</span>
+    </div>
+    <div class="toolbar__actions">
+      <label class="select">
+        <span class="select__label">Currency</span>
+        <select id="currency" class="select__input" aria-label="Currency">
+          <option value="GBP">GBP £</option>
+          <option value="USD">USD $</option>
+        </select>
+      </label>
+      <button id="theme-toggle" class="btn btn--ghost" type="button" aria-label="Toggle dark mode">
+        <span class="btn__icon" data-icon="sun"></span>
+      </button>
+      <button id="reset" class="btn btn--ghost" type="button">New</button>
+      <button id="download" class="btn btn--primary" type="button">Download PDF</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="editor" aria-label="Invoice editor">
+      <div class="editor__section">
+        <h2 class="editor__heading">Your details</h2>
+        <div class="field">
+          <label class="field__label" for="from-name">Business name</label>
+          <input id="from-name" class="field__input" type="text" data-bind="from.name" placeholder="Acme Ltd" />
+        </div>
+        <div class="field">
+          <label class="field__label" for="from-details">Address &amp; contact</label>
+          <textarea id="from-details" class="field__input field__input--area" rows="3" data-bind="from.details" placeholder="12 High Street&#10;London, W1A 1AA&#10;hello@acme.co"></textarea>
+        </div>
+        <label class="check">
+          <input id="remember" type="checkbox" class="check__input" />
+          <span class="check__label">Remember my details &amp; notes for future invoices</span>
+        </label>
+      </div>
+
+      <div class="editor__section">
+        <h2 class="editor__heading">Bill to</h2>
+        <div class="field">
+          <label class="field__label" for="to-name">Client name</label>
+          <input id="to-name" class="field__input" type="text" data-bind="to.name" placeholder="Client Co." />
+        </div>
+        <div class="field">
+          <label class="field__label" for="to-details">Client address</label>
+          <textarea id="to-details" class="field__input field__input--area" rows="3" data-bind="to.details" placeholder="Street, City, Postcode"></textarea>
+        </div>
+      </div>
+
+      <div class="editor__section">
+        <h2 class="editor__heading">Invoice</h2>
+        <div class="field-row">
+          <div class="field">
+            <label class="field__label" for="invoice-number">Invoice #</label>
+            <input id="invoice-number" class="field__input" type="text" data-bind="number" />
+          </div>
+          <div class="field">
+            <label class="field__label" for="issue-date">Issue date</label>
+            <input id="issue-date" class="field__input" type="date" data-bind="issueDate" />
+          </div>
+          <div class="field">
+            <label class="field__label" for="due-date">Due date</label>
+            <input id="due-date" class="field__input" type="date" data-bind="dueDate" />
+          </div>
+        </div>
+      </div>
+
+      <div class="editor__section">
+        <div class="editor__section-head">
+          <h2 class="editor__heading">Line items</h2>
+          <button id="add-item" class="btn btn--subtle" type="button">+ Add item</button>
+        </div>
+        <div class="items-head" aria-hidden="true">
+          <span>Description</span>
+          <span class="items-head__num">Qty</span>
+          <span class="items-head__num">Rate</span>
+          <span class="items-head__num">Amount</span>
+          <span></span>
+        </div>
+        <div id="items" class="items" role="list"></div>
+      </div>
+
+      <div class="editor__section">
+        <h2 class="editor__heading">Adjustments</h2>
+        <div class="field-row">
+          <div class="field">
+            <label class="field__label" for="discount">Discount (%)</label>
+            <input id="discount" class="field__input" type="number" min="0" step="0.01" data-bind="discount" />
+          </div>
+          <div class="field">
+            <label class="field__label" for="tax">Tax (%)</label>
+            <input id="tax" class="field__input" type="number" min="0" step="0.01" data-bind="tax" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label" for="notes">Notes</label>
+          <textarea id="notes" class="field__input field__input--area" rows="3" data-bind="notes" placeholder="Payment terms, bank details, thank-you message…"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section class="preview-wrap" aria-label="Invoice preview">
+      <article id="preview" class="invoice">
+        <header class="invoice__header">
+          <div>
+            <p class="invoice__eyebrow">Invoice</p>
+            <h1 class="invoice__title" data-out="from.name">Your business</h1>
+            <p class="invoice__number" data-out="number"></p>
+          </div>
+          <div class="invoice__from">
+            <p class="invoice__label">From</p>
+            <p class="invoice__multiline" data-out="from.details"></p>
+          </div>
+        </header>
+
+        <section class="invoice__meta">
+          <div>
+            <p class="invoice__label">Billed to</p>
+            <p class="invoice__strong" data-out="to.name"></p>
+            <p class="invoice__multiline" data-out="to.details"></p>
+          </div>
+          <div class="invoice__dates">
+            <div>
+              <p class="invoice__label">Issued</p>
+              <p data-out="issueDate"></p>
+            </div>
+            <div>
+              <p class="invoice__label">Due</p>
+              <p data-out="dueDate"></p>
+            </div>
+          </div>
+        </section>
+
+        <table class="invoice__table">
+          <thead>
+            <tr>
+              <th class="invoice__th">Description</th>
+              <th class="invoice__th invoice__th--num">Qty</th>
+              <th class="invoice__th invoice__th--num">Rate</th>
+              <th class="invoice__th invoice__th--num">Amount</th>
+            </tr>
+          </thead>
+          <tbody id="preview-items"></tbody>
+        </table>
+
+        <section class="invoice__totals">
+          <div class="invoice__total-row">
+            <span>Subtotal</span>
+            <span data-out="subtotal"></span>
+          </div>
+          <div class="invoice__total-row" data-row="discount">
+            <span>Discount</span>
+            <span data-out="discountAmount"></span>
+          </div>
+          <div class="invoice__total-row" data-row="tax">
+            <span>Tax</span>
+            <span data-out="taxAmount"></span>
+          </div>
+          <div class="invoice__total-row invoice__total-row--grand">
+            <span>Total</span>
+            <span data-out="total"></span>
+          </div>
+        </section>
+
+        <footer class="invoice__notes" data-row="notes">
+          <p class="invoice__label">Notes</p>
+          <p class="invoice__multiline" data-out="notes"></p>
+        </footer>
+      </article>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <button id="open-about" class="footer__link" type="button">About</button>
+    <span class="footer__sep" aria-hidden="true">·</span>
+    <span class="footer__muted">Built by <a class="footer__link" href="https://farhan.app" target="_blank" rel="noopener">Farhan</a></span>
+  </footer>
+
+  <div id="about" class="modal" hidden aria-hidden="true">
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="about-title">
+      <header class="modal__head">
+        <div class="modal__title-wrap">
+          <span class="modal__icon" aria-hidden="true"></span>
+          <div>
+            <h2 id="about-title" class="modal__title">Invoicer</h2>
+            <p class="modal__subtitle">Simple invoices, instantly</p>
+          </div>
+        </div>
+        <button class="modal__close" type="button" data-close aria-label="Close">×</button>
+      </header>
+      <div class="modal__body">
+        <p class="modal__p">A lightweight invoice generator for freelancers and small businesses. Create professional invoices, customise totals and tax, then export to PDF — all in your browser.</p>
+
+        <h3 class="modal__section">Privacy</h3>
+        <p class="modal__p">Everything runs client-side. Your invoice data is stored only in your browser's <code>localStorage</code>. No accounts, no servers, no tracking, no cookies, no analytics. Close the tab and nothing leaves your machine.</p>
+
+        <h3 class="modal__section">Source</h3>
+        <div class="modal__row">
+          <a class="modal__link" href="https://github.com/farhanmunim/invoicer" target="_blank" rel="noopener">github.com/farhanmunim/invoicer</a>
+          <span class="modal__muted">open source · MIT</span>
+        </div>
+
+        <h3 class="modal__section">Developer</h3>
+        <div class="modal__row">
+          <a class="modal__link" href="https://farhan.app" target="_blank" rel="noopener">Farhan Munim</a>
+          <span class="modal__muted">farhan.app</span>
+        </div>
+
+        <div class="support">
+          <p class="support__label">Support</p>
+          <p class="support__text">Support the development of this free tool.</p>
+          <a class="support__btn" href="https://buymeacoffee.com/farhan.app" target="_blank" rel="noopener">
+            <span aria-hidden="true">☕</span> Buy me a coffee
+            <span class="support__arrow" aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <template id="item-template">
+    <div class="item" role="listitem">
+      <input class="field__input item__desc" type="text" placeholder="Description" data-field="description" />
+      <input class="field__input item__num" type="number" min="0" step="0.01" placeholder="Qty" data-field="quantity" />
+      <input class="field__input item__num" type="number" min="0" step="0.01" placeholder="Rate" data-field="rate" />
+      <span class="item__amount" data-field="amount"></span>
+      <button class="item__remove" type="button" aria-label="Remove item">×</button>
+    </div>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
