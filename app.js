@@ -305,11 +305,71 @@
   }
 
   /* ---------- Actions ---------- */
-  document.getElementById("download").addEventListener("click", () => {
-    const originalTitle = document.title;
-    document.title = `${state.number || "Invoice"}`;
-    window.print();
-    setTimeout(() => { document.title = originalTitle; }, 500);
+  document.getElementById("download").addEventListener("click", async () => {
+    const filename = `${state.number || "Invoice"}.pdf`;
+    const preview = document.getElementById("preview");
+
+    if (!window.html2canvas || !window.jspdf) {
+      const originalTitle = document.title;
+      document.title = state.number || "Invoice";
+      window.print();
+      setTimeout(() => { document.title = originalTitle; }, 500);
+      return;
+    }
+
+    const btn = document.getElementById("download");
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Preparing…";
+
+    const root = document.documentElement;
+    const previousTheme = root.dataset.theme;
+    root.dataset.theme = "light";
+
+    try {
+      const canvas = await window.html2canvas(preview, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        windowWidth: preview.scrollWidth,
+      });
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      const imgData = canvas.toDataURL("image/png");
+
+      if (imgH <= pageH) {
+        pdf.addImage(imgData, "PNG", 0, 0, imgW, imgH);
+      } else {
+        let remaining = imgH;
+        let position = 0;
+        while (remaining > 0) {
+          pdf.addImage(imgData, "PNG", 0, position, imgW, imgH);
+          remaining -= pageH;
+          if (remaining > 0) {
+            position -= pageH;
+            pdf.addPage();
+          }
+        }
+      }
+
+      pdf.save(filename);
+    } catch (err) {
+      console.error("PDF export failed, falling back to print", err);
+      const originalTitle = document.title;
+      document.title = state.number || "Invoice";
+      window.print();
+      setTimeout(() => { document.title = originalTitle; }, 500);
+    } finally {
+      if (previousTheme) root.dataset.theme = previousTheme;
+      else delete root.dataset.theme;
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
   });
 
   document.getElementById("reset").addEventListener("click", () => {
