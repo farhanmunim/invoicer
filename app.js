@@ -30,14 +30,30 @@
     return Math.random().toString(36).slice(2, 10);
   }
 
+  function pad2(n) {
+    return String(n).padStart(2, "0");
+  }
+
+  function toIso(d) {
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  }
+
+  // Parse "YYYY-MM-DD" as a local date — new Date(iso) parses as UTC and
+  // shifts the day for users west of UTC.
+  function parseIso(iso) {
+    const [y, m, d] = (iso || "").split("-").map(Number);
+    if (!y || !m || !d) return null;
+    return new Date(y, m - 1, d);
+  }
+
   function today() {
-    return new Date().toISOString().slice(0, 10);
+    return toIso(new Date());
   }
 
   function addDays(iso, days) {
-    const d = new Date(iso);
+    const d = parseIso(iso) || new Date();
     d.setDate(d.getDate() + days);
-    return d.toISOString().slice(0, 10);
+    return toIso(d);
   }
 
   /* ---------- Persistence ---------- */
@@ -118,10 +134,9 @@
   }
 
   function formatDate(iso) {
-    if (!iso) return "";
+    const d = parseIso(iso);
+    if (!d || Number.isNaN(d.getTime())) return "";
     const locale = LOCALE_BY_CURRENCY[state.currency] || "en-GB";
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "";
     return d.toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric" });
   }
 
@@ -305,70 +320,32 @@
   }
 
   /* ---------- Actions ---------- */
-  document.getElementById("download").addEventListener("click", async () => {
-    const filename = `${state.number || "Invoice"}.pdf`;
-    const preview = document.getElementById("preview");
+  function printFallback() {
+    const originalTitle = document.title;
+    document.title = state.number || "Invoice";
+    window.print();
+    setTimeout(() => { document.title = originalTitle; }, 500);
+  }
 
-    if (!window.html2canvas || !window.jspdf) {
-      const originalTitle = document.title;
-      document.title = state.number || "Invoice";
-      window.print();
-      setTimeout(() => { document.title = originalTitle; }, 500);
+  function pdfFilename() {
+    const base = (state.number || "Invoice").trim().replace(/[^\w.-]+/g, "-") || "Invoice";
+    return `${base}.pdf`;
+  }
+
+  document.getElementById("download").addEventListener("click", () => {
+    if (!window.jspdf || !window.InvoicePDF) {
+      printFallback();
       return;
     }
-
-    const btn = document.getElementById("download");
-    const originalLabel = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = "Preparing…";
-
-    const root = document.documentElement;
-    const previousTheme = root.dataset.theme;
-    root.dataset.theme = "light";
-
     try {
-      const canvas = await window.html2canvas(preview, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        useCORS: true,
-        windowWidth: preview.scrollWidth,
+      const doc = window.InvoicePDF.generate(state, computeTotals(), {
+        money: formatMoney,
+        date: formatDate,
       });
-
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const imgW = pageW;
-      const imgH = (canvas.height * imgW) / canvas.width;
-      const imgData = canvas.toDataURL("image/png");
-
-      if (imgH <= pageH) {
-        pdf.addImage(imgData, "PNG", 0, 0, imgW, imgH);
-      } else {
-        let remaining = imgH;
-        let position = 0;
-        while (remaining > 0) {
-          pdf.addImage(imgData, "PNG", 0, position, imgW, imgH);
-          remaining -= pageH;
-          if (remaining > 0) {
-            position -= pageH;
-            pdf.addPage();
-          }
-        }
-      }
-
-      pdf.save(filename);
+      doc.save(pdfFilename());
     } catch (err) {
       console.error("PDF export failed, falling back to print", err);
-      const originalTitle = document.title;
-      document.title = state.number || "Invoice";
-      window.print();
-      setTimeout(() => { document.title = originalTitle; }, 500);
-    } finally {
-      if (previousTheme) root.dataset.theme = previousTheme;
-      else delete root.dataset.theme;
-      btn.disabled = false;
-      btn.textContent = originalLabel;
+      printFallback();
     }
   });
 

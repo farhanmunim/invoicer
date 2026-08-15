@@ -11,17 +11,17 @@ A lightweight, client-side invoice generator for freelancers and small businesse
 - "Remember my details & notes" option — keeps your business info + notes across new invoices
 - GBP / USD currency with locale-aware formatting
 - Discount and tax support with totals rounded at each step (no floating-point drift)
-- Native-print PDF export — works in Chrome, Edge, Firefox, Safari
+- Vector PDF export (real selectable text, identical on every device) with native-print fallback
 - Light / dark mode, baked into the token system
 - Fully responsive down to 360px
 
 ## Privacy
 
-Everything runs client-side. Invoice data is stored only in your browser's `localStorage`. No accounts, no servers, no analytics, no cookies. Close the tab and nothing leaves your machine.
+Everything runs client-side. Invoice data is stored only in your browser's `localStorage` and is never sent anywhere — no accounts, no servers. The site uses Google Analytics for aggregate page-view statistics only; no personal data or invoice content is collected.
 
 ## Stack
 
-Vanilla HTML, CSS, and JavaScript. No frameworks, no build step, no dependencies. Hosted on Cloudflare Pages.
+Vanilla HTML, CSS, and JavaScript. No frameworks, no build step. jsPDF (via CDN) for PDF export. Hosted on Cloudflare Pages.
 
 ## Local use
 
@@ -38,7 +38,9 @@ Drop the folder onto Cloudflare Pages. No build command, no environment variable
 
 ## PDF export
 
-Uses the browser's native print pipeline (`window.print()`) with a dedicated `@media print` stylesheet that hides the editor chrome and renders only the invoice. In Chrome's print dialog, untick **"Headers and footers"** to remove the browser-injected date / URL lines.
+The PDF is drawn as vectors directly from the invoice data with jsPDF (`invoice-pdf.js`) — not screenshotted from the DOM. That means real selectable text, small files, clean page breaks between line items, an identical layout on every device and screen size, and nothing in the PDF that isn't actual invoice data (empty fields and placeholders are omitted).
+
+If the jsPDF CDN is unavailable, export falls back to the browser's native print pipeline with a dedicated `@media print` stylesheet that renders only the invoice. In that fallback, untick **"Headers and footers"** in Chrome's print dialog to remove the browser-injected date / URL lines.
 
 ## Roadmap
 
