@@ -1,24 +1,70 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Invoicer — farhan.app</title>
+  <meta name="description" content="Free online invoice generator. Create, edit and download professional invoices as PDF in your browser — no account, no server, your data never leaves your device. Built by Farhan — farhan.app" />
   <meta name="author" content="farhan.app" />
-  <meta name="description" content="Create, edit, and download professional invoices as PDF — client-side, no account, no tracking. Built by Farhan — farhan.app" />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234338ca'/%3E%3Cstop offset='1' stop-color='%230f172a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3C/svg%3E" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="application-name" content="Invoicer" />
+  <meta name="apple-mobile-web-app-title" content="Invoicer" />
+  <link rel="canonical" href="https://invoicer.farhan.app/" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cg transform='translate(7 7) scale(.75)' fill='none' stroke='%23fafafa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z'/%3E%3Cpath d='M14 8H8'/%3E%3Cpath d='M16 12H8'/%3E%3Cpath d='M13 16H8'/%3E%3C/g%3E%3C/svg%3E" />
+
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Invoicer" />
   <meta property="og:title" content="Invoicer — farhan.app" />
-  <meta property="og:description" content="Create and export professional invoices as PDF — fully client-side, private, no account needed." />
+  <meta property="og:description" content="Free online invoice generator — create and export professional invoices as PDF, fully client-side, private, no account needed." />
   <meta property="og:url" content="https://invoicer.farhan.app/" />
+  <meta property="og:locale" content="en_GB" />
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:title" content="Invoicer — farhan.app" />
-  <meta name="twitter:description" content="Create, edit, and download professional invoices as PDF. Built by Farhan — farhan.app" />
+  <meta name="twitter:description" content="Free online invoice generator. Create, edit and download professional invoices as PDF. Built by Farhan — farhan.app" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Invoicer",
+    "url": "https://invoicer.farhan.app/",
+    "description": "Free online invoice generator. Create, edit and download professional invoices as PDF in your browser — no account, no server, your data never leaves your device.",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Any",
+    "browserRequirements": "Requires JavaScript",
+    "isAccessibleForFree": true,
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "GBP" },
+    "featureList": [
+      "Live invoice preview",
+      "PDF export",
+      "GBP and USD currency formatting",
+      "Discount and tax calculation",
+      "Light and dark mode",
+      "Works offline in the browser"
+    ],
+    "author": { "@type": "Person", "name": "Farhan Munim", "url": "https://farhan.app" },
+    "sameAs": ["https://github.com/farhanmunim/invoicer"]
+  }
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <script>
+    // Apply theme before first paint to avoid a flash of the wrong theme.
+    (function () {
+      try {
+        var stored = localStorage.getItem("invoicer.theme");
+        var theme = stored || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", theme === "dark" ? "#09090b" : "#ffffff");
+      } catch (_) {}
+    })();
+  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
   <!-- Google tag (gtag.js) -->
@@ -30,216 +76,314 @@
     gtag('config', 'G-Y64DWW0PYN');
   </script>
 </head>
-<body class="app">
-  <header class="toolbar" role="banner">
-    <div class="toolbar__brand">
-      <span class="toolbar__logo" aria-hidden="true"></span>
-      <span class="toolbar__name">Invoicer</span>
-    </div>
-    <div class="toolbar__actions">
+<body>
+  <a class="skip-link" href="#main">Skip to invoice preview</a>
+
+  <header class="topbar">
+    <a class="topbar__brand" href="./" aria-label="Invoicer home">
+      <span class="topbar__logo" aria-hidden="true">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
+          <path d="M14 8H8" /><path d="M16 12H8" /><path d="M13 16H8" />
+        </svg>
+      </span>
+      <span class="topbar__name">Invoicer</span>
+    </a>
+
+    <div class="topbar__spacer"></div>
+
+    <div class="topbar__actions">
       <label class="select">
         <span class="select__label">Currency</span>
-        <select id="currency" class="select__input" aria-label="Currency">
+        <select id="currency" class="select__input">
           <option value="GBP">GBP £</option>
           <option value="USD">USD $</option>
         </select>
+        <svg class="icon icon--sm select__chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
       </label>
-      <button id="theme-toggle" class="btn btn--ghost" type="button" aria-label="Toggle dark mode">
-        <span class="btn__icon" data-icon="sun"></span>
+
+      <button id="theme-toggle" class="btn btn--ghost btn--icon btn--sm theme-toggle" type="button" aria-label="Switch to dark mode">
+        <svg class="icon icon--sm theme-toggle__light" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+        </svg>
+        <svg class="icon icon--sm theme-toggle__dark" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
+        </svg>
       </button>
-      <button id="reset" class="btn btn--ghost" type="button">New</button>
-      <button id="download" class="btn btn--primary" type="button">Download PDF</button>
+
+      <button id="reset" class="btn btn--outline btn--sm hide-mobile" type="button">
+        <svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        New
+      </button>
+      <button id="download" class="btn btn--primary btn--sm hide-mobile" type="button">
+        <svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" />
+        </svg>
+        Download PDF
+      </button>
     </div>
   </header>
 
-  <main class="layout">
-    <section class="editor" aria-label="Invoice editor">
-      <div class="editor__section">
-        <h2 class="editor__heading">Your details</h2>
-        <div class="field">
-          <label class="field__label" for="from-name">Business name</label>
-          <input id="from-name" class="field__input" type="text" data-bind="from.name" placeholder="Acme Ltd" />
-        </div>
-        <div class="field">
-          <label class="field__label" for="from-details">Address &amp; contact</label>
-          <textarea id="from-details" class="field__input field__input--area" rows="3" data-bind="from.details" placeholder="12 High Street&#10;London, W1A 1AA&#10;hello@acme.co"></textarea>
-        </div>
-        <label class="check">
-          <input id="remember" type="checkbox" class="check__input" />
-          <span class="check__label">Remember my details &amp; notes for future invoices</span>
-        </label>
+  <div class="workspace">
+    <div class="overlay" id="overlay" hidden></div>
+
+    <aside class="panel" id="editor-panel" aria-labelledby="editor-title">
+      <div class="panel__hd">
+        <h2 id="editor-title" class="panel__title">Editor</h2>
+        <span class="panel__hint">Saved automatically</span>
+        <button id="panel-toggle" class="panel__toggle" type="button" aria-expanded="true" aria-controls="editor-body" aria-label="Collapse editor">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+        </button>
       </div>
 
-      <div class="editor__section">
-        <h2 class="editor__heading">Bill to</h2>
-        <div class="field">
-          <label class="field__label" for="to-name">Client name</label>
-          <input id="to-name" class="field__input" type="text" data-bind="to.name" placeholder="Client Co." />
-        </div>
-        <div class="field">
-          <label class="field__label" for="to-details">Client address</label>
-          <textarea id="to-details" class="field__input field__input--area" rows="3" data-bind="to.details" placeholder="Street, City, Postcode"></textarea>
-        </div>
-      </div>
-
-      <div class="editor__section">
-        <h2 class="editor__heading">Invoice</h2>
-        <div class="field-row">
-          <div class="field">
-            <label class="field__label" for="invoice-number">Invoice #</label>
-            <input id="invoice-number" class="field__input" type="text" data-bind="number" />
-          </div>
-          <div class="field">
-            <label class="field__label" for="issue-date">Issue date</label>
-            <input id="issue-date" class="field__input" type="date" data-bind="issueDate" />
-          </div>
-          <div class="field">
-            <label class="field__label" for="due-date">Due date</label>
-            <input id="due-date" class="field__input" type="date" data-bind="dueDate" />
-          </div>
-        </div>
-      </div>
-
-      <div class="editor__section">
-        <div class="editor__section-head">
-          <h2 class="editor__heading">Line items</h2>
-          <button id="add-item" class="btn btn--subtle" type="button">+ Add item</button>
-        </div>
-        <div class="items-head" aria-hidden="true">
-          <span>Description</span>
-          <span class="items-head__num">Qty</span>
-          <span class="items-head__num">Rate</span>
-          <span class="items-head__num">Amount</span>
-          <span></span>
-        </div>
-        <div id="items" class="items" role="list"></div>
-      </div>
-
-      <div class="editor__section">
-        <h2 class="editor__heading">Adjustments</h2>
-        <div class="field-row">
-          <div class="field">
-            <label class="field__label" for="discount">Discount (%)</label>
-            <input id="discount" class="field__input" type="number" min="0" step="0.01" data-bind="discount" />
-          </div>
-          <div class="field">
-            <label class="field__label" for="tax">Tax (%)</label>
-            <input id="tax" class="field__input" type="number" min="0" step="0.01" data-bind="tax" />
-          </div>
-        </div>
-        <div class="field">
-          <label class="field__label" for="notes">Notes</label>
-          <textarea id="notes" class="field__input field__input--area" rows="3" data-bind="notes" placeholder="Payment terms, bank details, thank-you message…"></textarea>
-        </div>
-      </div>
-    </section>
-
-    <section class="preview-wrap" aria-label="Invoice preview">
-      <article id="preview" class="invoice">
-        <header class="invoice__header">
-          <div>
-            <p class="invoice__eyebrow">Invoice</p>
-            <h1 class="invoice__title" data-out="from.name">Your business</h1>
-            <p class="invoice__number" data-out="number"></p>
-          </div>
-          <div class="invoice__from">
-            <p class="invoice__label">From</p>
-            <p class="invoice__multiline" data-out="from.details"></p>
-          </div>
-        </header>
-
-        <section class="invoice__meta">
-          <div>
-            <p class="invoice__label">Billed to</p>
-            <p class="invoice__strong" data-out="to.name"></p>
-            <p class="invoice__multiline" data-out="to.details"></p>
-          </div>
-          <div class="invoice__dates">
-            <div>
-              <p class="invoice__label">Issued</p>
-              <p data-out="issueDate"></p>
+      <div class="panel__body" id="editor-body">
+        <form id="editor" class="editor" novalidate>
+          <fieldset class="editor__section">
+            <legend class="editor__legend">Your details</legend>
+            <div class="field">
+              <label class="field__label" for="from-name">Business</label>
+              <input id="from-name" class="field__input" type="text" data-bind="from.name" placeholder="Acme Ltd" autocomplete="organization" />
             </div>
-            <div>
-              <p class="invoice__label">Due</p>
-              <p data-out="dueDate"></p>
+            <div class="field field--top">
+              <label class="field__label" for="from-details">Address</label>
+              <textarea id="from-details" class="field__input field__input--area" rows="3" data-bind="from.details" placeholder="12 High Street&#10;London, W1A 1AA&#10;hello@acme.co" autocomplete="street-address"></textarea>
             </div>
-          </div>
-        </section>
+            <label class="check">
+              <input id="remember" type="checkbox" class="check__input" />
+              <span class="check__label">Remember my details &amp; notes for future invoices</span>
+            </label>
+          </fieldset>
 
-        <table class="invoice__table">
-          <thead>
-            <tr>
-              <th class="invoice__th">Description</th>
-              <th class="invoice__th invoice__th--num">Qty</th>
-              <th class="invoice__th invoice__th--num">Rate</th>
-              <th class="invoice__th invoice__th--num">Amount</th>
-            </tr>
-          </thead>
-          <tbody id="preview-items"></tbody>
-        </table>
+          <fieldset class="editor__section">
+            <legend class="editor__legend">Bill to</legend>
+            <div class="field">
+              <label class="field__label" for="to-name">Client</label>
+              <input id="to-name" class="field__input" type="text" data-bind="to.name" placeholder="Client Co." />
+            </div>
+            <div class="field field--top">
+              <label class="field__label" for="to-details">Address</label>
+              <textarea id="to-details" class="field__input field__input--area" rows="3" data-bind="to.details" placeholder="Street, City, Postcode"></textarea>
+            </div>
+          </fieldset>
 
-        <section class="invoice__totals">
-          <div class="invoice__total-row">
-            <span>Subtotal</span>
-            <span data-out="subtotal"></span>
-          </div>
-          <div class="invoice__total-row" data-row="discount">
-            <span>Discount</span>
-            <span data-out="discountAmount"></span>
-          </div>
-          <div class="invoice__total-row" data-row="tax">
-            <span>Tax</span>
-            <span data-out="taxAmount"></span>
-          </div>
-          <div class="invoice__total-row invoice__total-row--grand">
-            <span>Total</span>
-            <span data-out="total"></span>
-          </div>
-        </section>
+          <fieldset class="editor__section">
+            <legend class="editor__legend">Invoice</legend>
+            <div class="field">
+              <label class="field__label" for="invoice-number">Number</label>
+              <input id="invoice-number" class="field__input" type="text" data-bind="number" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label class="field__label" for="issue-date">Issued</label>
+              <input id="issue-date" class="field__input" type="date" data-bind="issueDate" />
+            </div>
+            <div class="field">
+              <label class="field__label" for="due-date">Due</label>
+              <input id="due-date" class="field__input" type="date" data-bind="dueDate" />
+            </div>
+          </fieldset>
 
-        <footer class="invoice__notes" data-row="notes">
-          <p class="invoice__label">Notes</p>
-          <p class="invoice__multiline" data-out="notes"></p>
-        </footer>
-      </article>
-    </section>
-  </main>
+          <fieldset class="editor__section">
+            <legend class="editor__legend">Line items</legend>
+            <div class="editor__section-head">
+              <span class="panel__hint">Amounts update as you type</span>
+              <button id="add-item" class="btn btn--subtle" type="button">
+                <svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                Add item
+              </button>
+            </div>
+            <div class="items">
+              <div class="items__head" aria-hidden="true">
+                <span>Description</span>
+                <span class="items__head--num">Qty</span>
+                <span class="items__head--num">Rate</span>
+                <span class="items__head--num">Amount</span>
+                <span></span>
+              </div>
+              <ul id="items" class="items__list"></ul>
+            </div>
+          </fieldset>
+
+          <fieldset class="editor__section">
+            <legend class="editor__legend">Adjustments</legend>
+            <div class="field-row">
+              <div class="field field--stacked">
+                <label class="field__label" for="discount">Discount (%)</label>
+                <input id="discount" class="field__input" type="number" inputmode="decimal" min="0" max="100" step="0.01" data-bind="discount" />
+              </div>
+              <div class="field field--stacked">
+                <label class="field__label" for="tax">Tax (%)</label>
+                <input id="tax" class="field__input" type="number" inputmode="decimal" min="0" step="0.01" data-bind="tax" />
+              </div>
+            </div>
+            <div class="field field--top">
+              <label class="field__label" for="notes">Notes</label>
+              <textarea id="notes" class="field__input field__input--area" rows="3" data-bind="notes" placeholder="Payment terms, bank details, thank-you message…"></textarea>
+            </div>
+          </fieldset>
+        </form>
+      </div>
+    </aside>
+
+    <main id="main" class="main" tabindex="-1">
+      <h1 class="sr-only">Invoicer — free online invoice generator with PDF export</h1>
+      <div class="canvas">
+        <article id="preview" class="invoice" aria-labelledby="invoice-title">
+          <header class="invoice__header">
+            <div class="invoice__identity">
+              <p class="invoice__eyebrow">Invoice</p>
+              <h2 id="invoice-title" class="invoice__title" data-out="from.name">Your business</h2>
+              <p class="invoice__number"><span class="sr-only">Invoice number </span><span data-out="number"></span></p>
+            </div>
+            <address class="invoice__from">
+              <p class="invoice__label">From</p>
+              <p class="invoice__multiline" data-out="from.details"></p>
+            </address>
+          </header>
+
+          <section class="invoice__meta" aria-label="Billing details">
+            <div class="invoice__party">
+              <p class="invoice__label">Billed to</p>
+              <p class="invoice__strong" data-out="to.name"></p>
+              <p class="invoice__multiline" data-out="to.details"></p>
+            </div>
+            <dl class="invoice__dates">
+              <div>
+                <dt class="invoice__label">Issued</dt>
+                <dd><time data-out="issueDate"></time></dd>
+              </div>
+              <div>
+                <dt class="invoice__label">Due</dt>
+                <dd><time data-out="dueDate"></time></dd>
+              </div>
+            </dl>
+          </section>
+
+          <table class="invoice__table">
+            <caption class="sr-only">Line items</caption>
+            <thead>
+              <tr>
+                <th scope="col" class="invoice__th">Description</th>
+                <th scope="col" class="invoice__th invoice__th--num">Qty</th>
+                <th scope="col" class="invoice__th invoice__th--num">Rate</th>
+                <th scope="col" class="invoice__th invoice__th--num">Amount</th>
+              </tr>
+            </thead>
+            <tbody id="preview-items"></tbody>
+          </table>
+
+          <dl class="invoice__totals">
+            <div class="invoice__total-row">
+              <dt>Subtotal</dt>
+              <dd data-out="subtotal"></dd>
+            </div>
+            <div class="invoice__total-row" data-row="discount">
+              <dt>Discount</dt>
+              <dd data-out="discountAmount"></dd>
+            </div>
+            <div class="invoice__total-row" data-row="tax">
+              <dt>Tax</dt>
+              <dd data-out="taxAmount"></dd>
+            </div>
+            <div class="invoice__total-row invoice__total-row--grand">
+              <dt>Total</dt>
+              <dd data-out="total"></dd>
+            </div>
+          </dl>
+
+          <footer class="invoice__notes" data-row="notes">
+            <p class="invoice__label">Notes</p>
+            <p class="invoice__multiline" data-out="notes"></p>
+          </footer>
+        </article>
+      </div>
+    </main>
+  </div>
 
   <footer class="footer">
-    <button id="open-about" class="footer__link" type="button">About</button>
-    <span class="footer__sep" aria-hidden="true">·</span>
-    <span class="footer__muted">Built by <a class="footer__link" href="https://farhan.app" target="_blank" rel="noopener">Farhan</a></span>
+    <button id="open-about" class="footer__link footer__link--btn" type="button">About</button>
+    <span class="footer__sep" aria-hidden="true"></span>
+    <button id="open-privacy" class="footer__link footer__link--btn" type="button">Privacy</button>
+    <span class="footer__sep" aria-hidden="true"></span>
+    <a class="footer__link" href="https://github.com/farhanmunim/invoicer" target="_blank" rel="noopener">Source</a>
+    <span class="footer__spacer"></span>
+    <span class="footer__meta">Runs entirely in your browser</span>
+    <span class="footer__sep" aria-hidden="true"></span>
+    <span class="footer__built">Built by <a href="https://farhan.app" target="_blank" rel="noopener">Farhan</a></span>
   </footer>
 
-  <div id="about" class="modal" hidden aria-hidden="true">
-    <div class="modal__backdrop" data-close></div>
-    <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="about-title">
-      <header class="modal__head">
-        <div class="modal__title-wrap">
-          <span class="modal__icon" aria-hidden="true"></span>
+  <nav class="mobile-nav" aria-label="Quick actions">
+    <ul class="mobile-nav__list">
+      <li>
+        <button id="nav-preview" class="mobile-nav__item is-active" type="button">
+          <span class="mobile-nav__icon" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
+          </span>
+          Preview
+        </button>
+      </li>
+      <li>
+        <button id="nav-edit" class="mobile-nav__item" type="button" aria-controls="editor-panel" aria-expanded="false">
+          <span class="mobile-nav__icon" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>
+          </span>
+          Edit
+        </button>
+      </li>
+      <li>
+        <button id="nav-new" class="mobile-nav__item mobile-nav__item--brand" type="button">
+          <span class="mobile-nav__icon" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+          </span>
+          New
+        </button>
+      </li>
+      <li>
+        <button id="nav-download" class="mobile-nav__item" type="button">
+          <span class="mobile-nav__icon" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg>
+          </span>
+          Download PDF
+        </button>
+      </li>
+    </ul>
+  </nav>
+
+  <dialog id="about" class="about" aria-labelledby="about-title">
+    <div class="about__inner">
+      <div class="about__header">
+        <div class="about__title-wrap">
+          <span class="about__logo" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
+              <path d="M14 8H8" /><path d="M16 12H8" /><path d="M13 16H8" />
+            </svg>
+          </span>
           <div>
-            <h2 id="about-title" class="modal__title">Invoicer</h2>
-            <p class="modal__subtitle">Simple invoices, instantly</p>
+            <h2 id="about-title" class="about__title">About Invoicer</h2>
+            <p class="about__subtitle">Simple invoices, instantly</p>
           </div>
         </div>
-        <button class="modal__close" type="button" data-close aria-label="Close">×</button>
-      </header>
-      <div class="modal__body">
-        <p class="modal__p">A lightweight invoice generator for freelancers and small businesses. Create professional invoices, customise totals and tax, then export to PDF — all in your browser.</p>
+        <button id="about-close" class="about__close" type="button" aria-label="Close dialog">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+        </button>
+      </div>
+      <div class="about__body">
+        <p>A lightweight invoice generator for freelancers and small businesses. Create professional invoices, customise totals and tax, then export to PDF — all in your browser.</p>
 
-        <h3 class="modal__section">Privacy</h3>
-        <p class="modal__p">Your invoice data stays on your device — it's stored only in your browser's <code>localStorage</code> and is never sent anywhere. No accounts, no servers. The site uses <a class="modal__link" href="https://marketingplatform.google.com/about/analytics/" target="_blank" rel="noopener">Google Analytics</a> for aggregate page-view statistics only — no personal data or invoice content is collected.</p>
+        <h3 id="about-privacy" class="about__section" tabindex="-1">Privacy</h3>
+        <p>Your invoice data stays on your device — it's stored only in your browser's <code>localStorage</code> and is never sent anywhere. No accounts, no servers. The site uses <a class="about__link" href="https://marketingplatform.google.com/about/analytics/" target="_blank" rel="noopener">Google Analytics</a> for aggregate page-view statistics only — no personal data or invoice content is collected.</p>
 
-        <h3 class="modal__section">Source</h3>
-        <div class="modal__row">
-          <a class="modal__link" href="https://github.com/farhanmunim/invoicer" target="_blank" rel="noopener">github.com/farhanmunim/invoicer</a>
-          <span class="modal__muted">open source · MIT</span>
+        <h3 class="about__section">Source</h3>
+        <div class="about__row">
+          <a class="about__link" href="https://github.com/farhanmunim/invoicer" target="_blank" rel="noopener">github.com/farhanmunim/invoicer</a>
+          <span class="about__muted">open source · MIT</span>
         </div>
 
-        <h3 class="modal__section">Developer</h3>
-        <div class="modal__row">
-          <a class="modal__link" href="https://farhan.app" target="_blank" rel="noopener">Farhan Munim</a>
-          <span class="modal__muted">farhan.app</span>
+        <h3 class="about__section">Developer</h3>
+        <div class="about__row">
+          <a class="about__link" href="https://farhan.app" target="_blank" rel="noopener">Farhan Munim</a>
+          <span class="about__muted">farhan.app</span>
         </div>
 
         <div class="support">
@@ -247,23 +391,26 @@
           <p class="support__text">Support the development of this free tool.</p>
           <a class="support__btn" href="https://buymeacoffee.com/farhan.app" target="_blank" rel="noopener">
             <span aria-hidden="true">☕</span> Buy me a coffee
-            <span class="support__arrow" aria-hidden="true">↗</span>
+            <svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7" /><path d="M7 7h10v10" /></svg>
           </a>
         </div>
       </div>
     </div>
-  </div>
+  </dialog>
 
   <template id="item-template">
-    <div class="item" role="listitem">
-      <input class="field__input item__desc" type="text" placeholder="Description" data-field="description" />
-      <input class="field__input item__num" type="number" min="0" step="0.01" placeholder="Qty" data-field="quantity" />
-      <input class="field__input item__num" type="number" min="0" step="0.01" placeholder="Rate" data-field="rate" />
-      <span class="item__amount" data-field="amount"></span>
-      <button class="item__remove" type="button" aria-label="Remove item">×</button>
-    </div>
+    <li class="item">
+      <input class="field__input item__desc" type="text" placeholder="Description" data-field="description" autocomplete="off" />
+      <input class="field__input item__num" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Qty" data-field="quantity" />
+      <input class="field__input item__num" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Rate" data-field="rate" />
+      <output class="item__amount" data-field="amount"></output>
+      <button class="item__remove" type="button">
+        <svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+        <span class="sr-only">Remove item</span>
+      </button>
+    </li>
   </template>
 
-  <script src="app.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
