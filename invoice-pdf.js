@@ -28,6 +28,12 @@
   const INSET = 2;
   const TOTALS_INSET = 3;
   const NOTES_SIDE_MAX_LINES = 6;
+  const RASTER_SCALE = 4;
+  const RASTER_LINE = 1.2;
+  const RASTER_BASELINE = 0.62;
+  const PX_PER_MM = 96 / 25.4;
+  const PT_TO_PX = 96 / 72;
+  const RASTER_FONTS = '"Geist", "Helvetica Neue", Helvetica, Arial, "Noto Sans", sans-serif';
   const ACCENT_FALLBACK = "#18181b";
 
   /* One entry per design. Keep in step with the [data-design] rules in styles.css. */
@@ -38,19 +44,49 @@
     centered: { layout: "centered", titleSize: 24, upper: false, titleAccent: false, topBar: false, headRule: "hair", tableHead: "rule", banded: false, total: "rule" },
   };
 
-  // jsPDF's built-in fonts only cover WinAnsi; anything else would print as garbage.
+  // jsPDF's built-in fonts only cover WinAnsi. Text with any other character
+  // (Cyrillic, Greek, Polish ł, CJK, Arabic, emoji…) is drawn as an image of the
+  // glyphs instead, so it always renders correctly (but is not selectable).
   const WIN_ANSI_EXTRA = "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
-  function clean(value) {
-    const str = String(value == null ? "" : value).replace(/ /g, " ").replace(/−/g, "-");
-    let out = "";
-    for (const ch of str) {
+  const normalize = (value) => String(value == null ? "" : value).replace(/\u00a0/g, " ").replace(/\u2212/g, "-");
+  const clean = normalize;
+  function needsRaster(value) {
+    for (const ch of normalize(value)) {
       const code = ch.codePointAt(0);
       const ok = ch === "\n" || (code >= 0x20 && code <= 0x7e) || (code >= 0xa0 && code <= 0xff) || WIN_ANSI_EXTRA.includes(ch);
-      if (ok) { out += ch; continue; }
-      const base = ch.normalize("NFD").replace(/[̀-ͯ]/g, "");
-      out += base !== ch && /^[\x20-\x7e]+$/.test(base) ? base : "?";
+      if (!ok) return true;
     }
-    return out;
+    return false;
+  }
+
+  let measureContext = null;
+  function rasterFont(size, bold) {
+    return `${bold ? 700 : 400} ${size * PT_TO_PX}px ${RASTER_FONTS}`;
+  }
+  function rasterWidth(text, size, bold) {
+    if (!measureContext) measureContext = document.createElement("canvas").getContext("2d");
+    measureContext.font = rasterFont(size, bold);
+    return measureContext.measureText(text).width / PX_PER_MM;
+  }
+
+  function wrapRaster(value, maxW, size, bold) {
+    const lines = [];
+    normalize(value).split("\n").forEach((paragraph) => {
+      let line = "";
+      paragraph.split(" ").forEach((word) => {
+        const candidate = line ? `${line} ${word}` : word;
+        if (rasterWidth(candidate, size, bold) <= maxW) { line = candidate; return; }
+        if (line) lines.push(line);
+        if (rasterWidth(word, size, bold) <= maxW) { line = word; return; }
+        let chunk = "";
+        for (const ch of word) {
+          if (chunk && rasterWidth(chunk + ch, size, bold) > maxW) { lines.push(chunk); chunk = ch; } else chunk += ch;
+        }
+        line = chunk;
+      });
+      lines.push(line);
+    });
+    return lines;
   }
 
   function hexToRgb(hex) {
@@ -81,19 +117,47 @@
       doc.setFontSize(size);
       doc.setTextColor(...color);
     };
+    const rasterLine = (text, x, atY, size, bold, color, align) => {
+      const widthMm = rasterWidth(text, size, bold);
+      const heightMm = size * PT_TO_MM * RASTER_LINE;
+      const px = (mm) => Math.ceil(mm * PX_PER_MM * RASTER_SCALE);
+      const canvas = document.createElement("canvas");
+      canvas.width = px(widthMm) + 2;
+      canvas.height = px(heightMm);
+      const ctx = canvas.getContext("2d");
+      ctx.scale(RASTER_SCALE, RASTER_SCALE);
+      ctx.font = rasterFont(size, bold);
+      ctx.fillStyle = `rgb(${color.join(",")})`;
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(text, 0, heightMm * PX_PER_MM * RASTER_BASELINE);
+      const left = align === "right" ? x - widthMm : align === "center" ? x - widthMm / 2 : x;
+      doc.addImage(canvas.toDataURL("image/png"), "PNG", left, atY, canvas.width / (PX_PER_MM * RASTER_SCALE), heightMm);
+    };
     const put = (str, x, atY, size, bold, color, align = "left") => {
-      style(size, bold, color);
-      doc.text(Array.isArray(str) ? str.map(clean) : clean(str), x, atY, { align, baseline: "top", lineHeightFactor: LINE_HEIGHT });
+      const lines = Array.isArray(str) ? str : [str];
+      if (!lines.some(needsRaster)) {
+        style(size, bold, color);
+        doc.text(lines.map(clean), x, atY, { align, baseline: "top", lineHeightFactor: LINE_HEIGHT });
+        return;
+      }
+      lines.forEach((text, i) => {
+        const top = atY + i * lh(size);
+        if (needsRaster(text)) rasterLine(normalize(text), x, top, size, bold, color, align);
+        else put(text, x, top, size, bold, color, align);
+      });
     };
     const wrap = (str, width, size, bold) => {
+      if (needsRaster(str)) return wrapRaster(str, width, size, bold);
       style(size, bold);
       return doc.splitTextToSize(clean(str), width);
     };
     const fit = (str, maxW, size, bold) => {
-      style(size, bold);
-      let s = clean(str);
-      while (s.length > 1 && doc.getTextWidth(s) > maxW) s = s.slice(0, -1);
-      return s === clean(str) ? s : `${s.trimEnd()}…`;
+      const full = clean(str);
+      const raster = needsRaster(full);
+      const width = (t) => { if (raster) return rasterWidth(t, size, bold); style(size, bold); return doc.getTextWidth(t); };
+      let s = full;
+      while (s.length > 1 && width(s) > maxW) s = s.slice(0, -1);
+      return s === full ? s : `${s.trimEnd()}…`;
     };
     const line = (x1, atY, x2, width, color) => {
       doc.setDrawColor(...color);
@@ -156,7 +220,7 @@
       const toEnd = party("BILL TO", state.to, MARGIN, y);
       let my = y;
       metaItems.forEach(([label, value]) => {
-        put(label[0] + label.slice(1).toLowerCase(), RIGHT - 48, my, SIZE.body, false, COLOR.muted);
+        put(label[0] + label.slice(1).toLowerCase(), RIGHT - 56, my, SIZE.body, false, COLOR.muted);
         put(value, RIGHT, my, SIZE.body, false, COLOR.ink, "right");
         my += lh(SIZE.body) + 1.5;
       });
@@ -234,7 +298,7 @@
       put(lines, descX, top, SIZE.body, false, COLOR.ink);
       const qty = String(+(Number(item.quantity) || 0).toFixed(2));
       put(qty, COL.qtyX, top, SIZE.body, false, COLOR.ink, "right");
-      put(money(Number(item.rate) || 0), COL.rateX, top, SIZE.body, false, COLOR.ink, "right");
+      put(data.rate(Number(item.rate) || 0), COL.rateX, top, SIZE.body, false, COLOR.ink, "right");
       put(money(data.lineAmount(item)), amountX, top, SIZE.body, false, COLOR.ink, "right");
       y += height;
       if (!theme.banded) hair(y);

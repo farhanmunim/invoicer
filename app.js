@@ -23,6 +23,10 @@
   const SHEET_QUERY = "(min-width: 860px)";
   const A4_RATIO = 297 / 210;
   const TOAST_MS = 3500;
+  const UNDO_TOAST_MS = 8000;
+  const DOWNLOAD_LOCK_MS = 1000;
+  const MAX_RATE_DECIMALS = 4;
+  const CURRENCIES = Object.keys(LOCALE_BY_CURRENCY);
   const URL_REVOKE_MS = 10000;
 
   /* ---------- tiny DOM helpers ---------- */
@@ -88,16 +92,50 @@
   }
 
   /* ---------- Persistence ---------- */
+  // Anything read from storage is untrusted: coerce it to the shape the app expects.
+  const toStr = (v) => (typeof v === "string" ? v : v == null ? "" : String(v));
+  const toNum = (v, min = -Infinity, max = Infinity) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : 0;
+  };
+  const sanitizeParty = (p) => {
+    const o = p && typeof p === "object" ? p : {};
+    return { name: toStr(o.name), details: toStr(o.details) };
+  };
+  const sanitizeItem = (it) => ({
+    id: toStr(it.id) || cryptoId(),
+    description: toStr(it.description),
+    quantity: it.quantity === undefined ? 1 : toNum(it.quantity, 0),
+    rate: toNum(it.rate),
+  });
+
+  function sanitizeState(raw) {
+    const base = defaultState();
+    const o = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+    const items = Array.isArray(o.items)
+      ? o.items.filter((it) => it && typeof it === "object").map(sanitizeItem)
+      : [];
+    return {
+      number: typeof o.number === "string" ? o.number : base.number,
+      issueDate: typeof o.issueDate === "string" ? o.issueDate : base.issueDate,
+      dueDate: typeof o.dueDate === "string" ? o.dueDate : base.dueDate,
+      currency: CURRENCIES.includes(o.currency) ? o.currency : base.currency,
+      from: sanitizeParty(o.from),
+      to: sanitizeParty(o.to),
+      items: items.length ? items : base.items,
+      discount: toNum(o.discount, 0, 100),
+      tax: toNum(o.tax, 0, 100),
+      notes: toStr(o.notes),
+      remember: o.remember === true,
+      design: DESIGNS.includes(o.design) ? o.design : base.design,
+      accent: ACCENTS.some((x) => x.hex === o.accent) ? o.accent : base.accent,
+    };
+  }
+
   function loadState() {
     try {
       const raw = storageGet(STORAGE_KEY);
-      if (!raw) return defaultState();
-      const parsed = JSON.parse(raw);
-      const merged = { ...defaultState(), ...parsed };
-      if (!Array.isArray(merged.items) || merged.items.length === 0) merged.items = [newItem()];
-      if (!DESIGNS.includes(merged.design)) merged.design = DEFAULT_DESIGN;
-      if (!ACCENTS.some((x) => x.hex === merged.accent)) merged.accent = DEFAULT_ACCENT;
-      return merged;
+      return raw ? sanitizeState(JSON.parse(raw)) : defaultState();
     } catch {
       return defaultState();
     }
@@ -112,7 +150,9 @@
   function loadSavedDetails() {
     try {
       const raw = storageGet(SAVED_DETAILS_KEY);
-      return raw ? JSON.parse(raw) : null;
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return { from: sanitizeParty(parsed && parsed.from), notes: toStr(parsed && parsed.notes) };
     } catch { return null; }
   }
 
@@ -190,6 +230,18 @@
     }
   }
 
+  // Rates keep the precision the user typed (up to 4 dp) so rate × qty is checkable on paper.
+  function formatRate(value) {
+    const locale = LOCALE_BY_CURRENCY[state.currency] || "en-GB";
+    const n = Number.isFinite(value) ? value : 0;
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: state.currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: MAX_RATE_DECIMALS,
+    }).format(n);
+  }
+
   function formatDate(iso) {
     const d = parseISODate(iso);
     if (!d) return "";
@@ -206,9 +258,9 @@
 
   function computeTotals() {
     const subtotal = state.items.reduce((sum, it) => sum + lineAmount(it), 0);
-    const discountAmount = round2(subtotal * ((Number(state.discount) || 0) / 100));
+    const discountAmount = round2(subtotal * (toNum(state.discount, 0, 100) / 100));
     const afterDiscount = round2(subtotal - discountAmount);
-    const taxAmount = round2(afterDiscount * ((Number(state.tax) || 0) / 100));
+    const taxAmount = round2(afterDiscount * (toNum(state.tax, 0, 100) / 100));
     const total = round2(afterDiscount + taxAmount);
     return { subtotal: round2(subtotal), discountAmount, taxAmount, total };
   }
@@ -254,9 +306,31 @@
     sheetEl.style.setProperty("--pages", pages);
   }
 
+  let guideFrame = 0;
+  function schedulePageGuides() {
+    if (guideFrame) return;
+    guideFrame = requestAnimationFrame(() => {
+      guideFrame = 0;
+      updatePageGuides();
+    });
+  }
+
   function layout() {
     autosizeAll();
     updatePageGuides();
+  }
+
+  // Clamp a number field to its min/max (and 4 dp for rates) once the user leaves it,
+  // so what the field shows is exactly what the invoice uses.
+  function normalizeNumberField(el, commit) {
+    if (el.type !== "number") return;
+    const min = el.min === "" ? -Infinity : Number(el.min);
+    const max = el.max === "" ? Infinity : Number(el.max);
+    const factor = 10 ** MAX_RATE_DECIMALS;
+    const value = Math.round(toNum(el.value, min, max) * factor) / factor;
+    commit(value);
+    el.value = fieldValue(value);
+    persistAndRender();
   }
 
   function bindFields() {
@@ -272,6 +346,17 @@
         if (el.tagName === "TEXTAREA") autosize(el);
         persistAndRender();
       });
+      el.addEventListener("change", () => normalizeNumberField(el, (v) => setByPath(state, path, v)));
+      if (el.dataset.singleLine !== undefined) {
+        el.addEventListener("keydown", (e) => { if (e.key === "Enter") e.preventDefault(); });
+        el.addEventListener("input", () => {
+          if (!el.value.includes("\n")) return;
+          el.value = el.value.replace(/\s*\n\s*/g, " ");
+          setByPath(state, path, el.value);
+          autosize(el);
+          persistAndRender();
+        });
+      }
     });
     bindAllValues();
 
@@ -325,6 +410,10 @@
         if (e.target.tagName === "TEXTAREA") autosize(e.target);
         persistAndRender();
       });
+      node.addEventListener("change", (e) => {
+        const field = e.target.dataset.field;
+        if (field === "quantity" || field === "rate") normalizeNumberField(e.target, (v) => { item[field] = v; });
+      });
 
       node.querySelector(".item__remove").addEventListener("click", () => {
         const idx = state.items.findIndex((i) => i.id === item.id);
@@ -361,9 +450,11 @@
     };
     $$("[data-out]").forEach((el) => { el.textContent = text[el.dataset.out]; });
     $$(".item", itemsEl).forEach((node, i) => {
-      node.querySelector('[data-field="amount"]').value = formatMoney(lineAmount(state.items[i]));
+      const out = node.querySelector('[data-field="amount"]');
+      const next = formatMoney(lineAmount(state.items[i]));
+      if (out.value !== next) out.value = next;
     });
-    updatePageGuides();
+    schedulePageGuides();
   }
 
   function persistAndRender() {
@@ -374,12 +465,33 @@
   /* ---------- Toast ---------- */
   const Toast = {
     el: $("#toast"),
+    text: $("#toast-text"),
+    action: $("#toast-action"),
     timer: 0,
-    show(message) {
-      Toast.el.textContent = message;
+    onAction: null,
+
+    init() {
+      on(Toast.action, "click", () => {
+        const run = Toast.onAction;
+        Toast.hide();
+        if (run) run();
+      });
+    },
+
+    show(message, { actionLabel = "", onAction = null, duration = TOAST_MS } = {}) {
+      Toast.text.textContent = message;
+      Toast.action.hidden = !actionLabel;
+      Toast.action.textContent = actionLabel;
+      Toast.onAction = onAction;
       Toast.el.hidden = false;
       clearTimeout(Toast.timer);
-      Toast.timer = setTimeout(() => { Toast.el.hidden = true; }, TOAST_MS);
+      Toast.timer = setTimeout(Toast.hide, duration);
+    },
+
+    hide() {
+      clearTimeout(Toast.timer);
+      Toast.el.hidden = true;
+      Toast.onAction = null;
     },
   };
 
@@ -445,6 +557,7 @@
           state,
           totals: computeTotals(),
           money: formatMoney,
+          rate: formatRate,
           date: formatDate,
           lineAmount,
         });
@@ -454,13 +567,15 @@
         console.error("PDF export failed", err);
         Toast.show("Couldn't create the PDF. Please try again.");
       } finally {
+        // Hold the lock briefly so a double-click can't produce two downloads
+        await new Promise((resolve) => setTimeout(resolve, DOWNLOAD_LOCK_MS));
         Actions.setBusy(false);
       }
     },
 
     newInvoice() {
-      if (!confirm("Start a new invoice? Current data will be cleared.")) return;
-      const fresh = { ...defaultState(), design: state.design, accent: state.accent };
+      const previous = state;
+      const fresh = { ...defaultState(), design: state.design, accent: state.accent, number: nextNumber(state.number) };
       const saved = state.remember ? loadSavedDetails() : null;
       if (saved) {
         fresh.from = { ...fresh.from, ...saved.from };
@@ -470,10 +585,28 @@
       state = fresh;
       saveState();
       renderAll();
+      Design.apply();
       const first = $("#from-name");
       if (first && !isMobile()) first.focus({ preventScroll: true });
+      Toast.show("Started a new invoice.", {
+        actionLabel: "Undo",
+        duration: UNDO_TOAST_MS,
+        onAction() {
+          state = previous;
+          saveState();
+          renderAll();
+          Design.apply();
+        },
+      });
     },
   };
+
+  // INV-0009 -> INV-0010, 2026/07 -> 2026/08; numbers without digits fall back to the default
+  function nextNumber(current) {
+    const m = /^(.*?)(\d+)(\D*)$/.exec(String(current || ""));
+    if (!m) return defaultState().number;
+    return `${m[1]}${(BigInt(m[2]) + 1n).toString().padStart(m[2].length, "0")}${m[3]}`;
+  }
 
   /* ---------- Design (layout + accent) ---------- */
   const Design = {
@@ -570,6 +703,12 @@
     $("#remember").checked = !!state.remember;
   }
 
+  async function layoutAfterFonts() {
+    if (!document.fonts || !document.fonts.ready) return;
+    await document.fonts.ready;
+    layout();
+  }
+
   function renderAll() {
     bindAllValues();
     renderItems();
@@ -577,6 +716,7 @@
   }
 
   Theme.init();
+  Toast.init();
   Actions.init();
   About.init();
   Design.init();
@@ -584,5 +724,5 @@
   renderItems();
   layout();
   on(window, "resize", layout);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
+  layoutAfterFonts();
 })();
