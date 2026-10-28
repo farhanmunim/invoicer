@@ -65,8 +65,8 @@
       } catch (_) {}
     })();
   </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="invoice-pdf.js" defer></script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y64DWW0PYN"></script>
   <script>
@@ -77,7 +77,7 @@
   </script>
 </head>
 <body>
-  <a class="skip-link" href="#main">Skip to invoice preview</a>
+  <a class="skip-link" href="#main">Skip to invoice</a>
 
   <header class="topbar">
     <a class="topbar__brand" href="./" aria-label="Invoicer home">
@@ -89,216 +89,114 @@
       </span>
       <span class="topbar__name">Invoicer</span>
     </a>
-
     <div class="topbar__spacer"></div>
-
     <div class="topbar__actions">
       <label class="select">
-        <span class="select__label">Currency</span>
+        <span class="sr-only">Currency</span>
         <select id="currency" class="select__input">
           <option value="GBP">GBP £</option>
           <option value="USD">USD $</option>
         </select>
         <svg class="icon icon--sm select__chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
       </label>
-
-      <button id="theme-toggle" class="btn btn--ghost btn--icon btn--sm theme-toggle" type="button" aria-label="Switch to dark mode">
-        <svg class="icon icon--sm theme-toggle__light" viewBox="0 0 24 24" aria-hidden="true">
+      <button id="theme-toggle" class="btn btn--ghost btn--icon theme-toggle" type="button" aria-label="Switch to dark mode">
+        <svg class="icon theme-toggle__light" viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="12" r="4" />
           <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
         </svg>
-        <svg class="icon icon--sm theme-toggle__dark" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
-        </svg>
+        <svg class="icon theme-toggle__dark" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" /></svg>
       </button>
-
-      <button id="reset" class="btn btn--outline btn--sm hide-mobile" type="button">
-        <svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-        New
-      </button>
-      <button id="download" class="btn btn--primary btn--sm hide-mobile" type="button">
-        <svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" />
-        </svg>
-        Download PDF
-      </button>
+      <button class="btn btn--ghost topbar__new" type="button" data-action="new"><svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>New</button>
+      <button class="btn btn--primary topbar__download" type="button" data-action="download"><svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg>Download PDF</button>
     </div>
   </header>
 
-  <div class="workspace">
-    <div class="overlay" id="overlay" hidden></div>
+  <main id="main" class="main" tabindex="-1">
+    <h1 class="sr-only">Invoicer — free online invoice generator with PDF export</h1>
 
-    <aside class="panel" id="editor-panel" aria-labelledby="editor-title">
-      <div class="panel__hd">
-        <h2 id="editor-title" class="panel__title">Editor</h2>
-        <span class="panel__hint">Saved automatically</span>
-        <button id="panel-toggle" class="panel__toggle" type="button" aria-expanded="true" aria-controls="editor-body" aria-label="Collapse editor">
-          <svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
-        </button>
+    <form id="editor" class="sheet" novalidate aria-label="Invoice">
+      <div class="sheet__head">
+        <h2 class="sheet__title">Invoice</h2>
+        <div class="sheet__meta">
+          <div class="field">
+            <label class="field__label" for="invoice-number">Number</label>
+            <input id="invoice-number" class="field__input" type="text" data-bind="number" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label class="field__label" for="issue-date">Issued</label>
+            <input id="issue-date" class="field__input" type="date" data-bind="issueDate" />
+          </div>
+          <div class="field">
+            <label class="field__label" for="due-date">Due</label>
+            <input id="due-date" class="field__input" type="date" data-bind="dueDate" />
+          </div>
+        </div>
       </div>
 
-      <div class="panel__body" id="editor-body">
-        <form id="editor" class="editor" novalidate>
-          <fieldset class="editor__section">
-            <legend class="editor__legend">Your details</legend>
-            <div class="field">
-              <label class="field__label" for="from-name">Business</label>
-              <input id="from-name" class="field__input" type="text" data-bind="from.name" placeholder="Acme Ltd" autocomplete="organization" />
-            </div>
-            <div class="field field--top">
-              <label class="field__label" for="from-details">Address</label>
-              <textarea id="from-details" class="field__input field__input--area" rows="3" data-bind="from.details" placeholder="12 High Street&#10;London, W1A 1AA&#10;hello@acme.co" autocomplete="street-address"></textarea>
-            </div>
-            <label class="check">
-              <input id="remember" type="checkbox" class="check__input" />
-              <span class="check__label">Remember my details &amp; notes for future invoices</span>
-            </label>
-          </fieldset>
-
-          <fieldset class="editor__section">
-            <legend class="editor__legend">Bill to</legend>
-            <div class="field">
-              <label class="field__label" for="to-name">Client</label>
-              <input id="to-name" class="field__input" type="text" data-bind="to.name" placeholder="Client Co." />
-            </div>
-            <div class="field field--top">
-              <label class="field__label" for="to-details">Address</label>
-              <textarea id="to-details" class="field__input field__input--area" rows="3" data-bind="to.details" placeholder="Street, City, Postcode"></textarea>
-            </div>
-          </fieldset>
-
-          <fieldset class="editor__section">
-            <legend class="editor__legend">Invoice</legend>
-            <div class="field">
-              <label class="field__label" for="invoice-number">Number</label>
-              <input id="invoice-number" class="field__input" type="text" data-bind="number" autocomplete="off" />
-            </div>
-            <div class="field">
-              <label class="field__label" for="issue-date">Issued</label>
-              <input id="issue-date" class="field__input" type="date" data-bind="issueDate" />
-            </div>
-            <div class="field">
-              <label class="field__label" for="due-date">Due</label>
-              <input id="due-date" class="field__input" type="date" data-bind="dueDate" />
-            </div>
-          </fieldset>
-
-          <fieldset class="editor__section">
-            <legend class="editor__legend">Line items</legend>
-            <div class="editor__section-head">
-              <span class="panel__hint">Amounts update as you type</span>
-              <button id="add-item" class="btn btn--subtle" type="button">
-                <svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-                Add item
-              </button>
-            </div>
-            <div class="items">
-              <div class="items__head" aria-hidden="true">
-                <span>Description</span>
-                <span class="items__head--num">Qty</span>
-                <span class="items__head--num">Rate</span>
-                <span class="items__head--num">Amount</span>
-                <span></span>
-              </div>
-              <ul id="items" class="items__list"></ul>
-            </div>
-          </fieldset>
-
-          <fieldset class="editor__section">
-            <legend class="editor__legend">Adjustments</legend>
-            <div class="field-row">
-              <div class="field field--stacked">
-                <label class="field__label" for="discount">Discount (%)</label>
-                <input id="discount" class="field__input" type="number" inputmode="decimal" min="0" max="100" step="0.01" data-bind="discount" />
-              </div>
-              <div class="field field--stacked">
-                <label class="field__label" for="tax">Tax (%)</label>
-                <input id="tax" class="field__input" type="number" inputmode="decimal" min="0" step="0.01" data-bind="tax" />
-              </div>
-            </div>
-            <div class="field field--top">
-              <label class="field__label" for="notes">Notes</label>
-              <textarea id="notes" class="field__input field__input--area" rows="3" data-bind="notes" placeholder="Payment terms, bank details, thank-you message…"></textarea>
-            </div>
-          </fieldset>
-        </form>
+      <div class="sheet__parties">
+        <section class="party" aria-labelledby="from-title">
+          <h3 id="from-title" class="field__label">From</h3>
+          <input id="from-name" class="field__input field__input--strong" type="text" data-bind="from.name" placeholder="Your business name" aria-label="Your business name" autocomplete="organization" />
+          <textarea id="from-details" class="field__input field__input--area" rows="3" data-bind="from.details" placeholder="Address, email, phone" aria-label="Your address and contact details" autocomplete="street-address"></textarea>
+          <label class="check">
+            <input id="remember" type="checkbox" class="check__input" />
+            <span class="check__label">Remember my details &amp; notes</span>
+          </label>
+        </section>
+        <section class="party" aria-labelledby="to-title">
+          <h3 id="to-title" class="field__label">Bill to</h3>
+          <input id="to-name" class="field__input field__input--strong" type="text" data-bind="to.name" placeholder="Client name" aria-label="Client name" />
+          <textarea id="to-details" class="field__input field__input--area" rows="3" data-bind="to.details" placeholder="Client address" aria-label="Client address"></textarea>
+        </section>
       </div>
-    </aside>
 
-    <main id="main" class="main" tabindex="-1">
-      <h1 class="sr-only">Invoicer — free online invoice generator with PDF export</h1>
-      <div class="canvas">
-        <article id="preview" class="invoice" aria-labelledby="invoice-title">
-          <header class="invoice__header">
-            <div class="invoice__identity">
-              <p class="invoice__eyebrow">Invoice</p>
-              <h2 id="invoice-title" class="invoice__title" data-out="from.name">Your business</h2>
-              <p class="invoice__number"><span class="sr-only">Invoice number </span><span data-out="number"></span></p>
-            </div>
-            <address class="invoice__from">
-              <p class="invoice__label">From</p>
-              <p class="invoice__multiline" data-out="from.details"></p>
-            </address>
-          </header>
+      <section class="items" aria-labelledby="items-title">
+        <h3 id="items-title" class="sr-only">Line items</h3>
+        <div class="items__head" aria-hidden="true">
+          <span>Description</span>
+          <span class="items__head-num">Qty</span>
+          <span class="items__head-num">Rate</span>
+          <span class="items__head-num">Amount</span>
+          <span></span>
+        </div>
+        <ul id="items" class="items__list"></ul>
+        <button id="add-item" class="btn btn--subtle items__add" type="button"><svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>Add item</button>
+      </section>
 
-          <section class="invoice__meta" aria-label="Billing details">
-            <div class="invoice__party">
-              <p class="invoice__label">Billed to</p>
-              <p class="invoice__strong" data-out="to.name"></p>
-              <p class="invoice__multiline" data-out="to.details"></p>
-            </div>
-            <dl class="invoice__dates">
-              <div>
-                <dt class="invoice__label">Issued</dt>
-                <dd><time data-out="issueDate"></time></dd>
-              </div>
-              <div>
-                <dt class="invoice__label">Due</dt>
-                <dd><time data-out="dueDate"></time></dd>
-              </div>
-            </dl>
-          </section>
-
-          <table class="invoice__table">
-            <caption class="sr-only">Line items</caption>
-            <thead>
-              <tr>
-                <th scope="col" class="invoice__th">Description</th>
-                <th scope="col" class="invoice__th invoice__th--num">Qty</th>
-                <th scope="col" class="invoice__th invoice__th--num">Rate</th>
-                <th scope="col" class="invoice__th invoice__th--num">Amount</th>
-              </tr>
-            </thead>
-            <tbody id="preview-items"></tbody>
-          </table>
-
-          <dl class="invoice__totals">
-            <div class="invoice__total-row">
-              <dt>Subtotal</dt>
-              <dd data-out="subtotal"></dd>
-            </div>
-            <div class="invoice__total-row" data-row="discount">
-              <dt>Discount</dt>
-              <dd data-out="discountAmount"></dd>
-            </div>
-            <div class="invoice__total-row" data-row="tax">
-              <dt>Tax</dt>
-              <dd data-out="taxAmount"></dd>
-            </div>
-            <div class="invoice__total-row invoice__total-row--grand">
-              <dt>Total</dt>
-              <dd data-out="total"></dd>
-            </div>
-          </dl>
-
-          <footer class="invoice__notes" data-row="notes">
-            <p class="invoice__label">Notes</p>
-            <p class="invoice__multiline" data-out="notes"></p>
-          </footer>
-        </article>
+      <div class="sheet__foot">
+        <div class="notes">
+          <label class="field__label" for="notes">Notes</label>
+          <textarea id="notes" class="field__input field__input--area" rows="4" data-bind="notes" placeholder="Payment terms, bank details, thank-you message…"></textarea>
+        </div>
+        <dl class="totals">
+          <div class="totals__row">
+            <dt>Subtotal</dt>
+            <dd data-out="subtotal"></dd>
+          </div>
+          <div class="totals__row">
+            <dt class="totals__adjust">
+              <label for="discount">Discount</label>
+              <span class="pct"><input id="discount" class="field__input pct__input" type="number" inputmode="decimal" min="0" max="100" step="0.01" placeholder="0" data-bind="discount" /><span class="pct__sign" aria-hidden="true">%</span></span>
+            </dt>
+            <dd data-out="discountAmount"></dd>
+          </div>
+          <div class="totals__row">
+            <dt class="totals__adjust">
+              <label for="tax">Tax</label>
+              <span class="pct"><input id="tax" class="field__input pct__input" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" data-bind="tax" /><span class="pct__sign" aria-hidden="true">%</span></span>
+            </dt>
+            <dd data-out="taxAmount"></dd>
+          </div>
+          <div class="totals__row totals__row--grand">
+            <dt>Total</dt>
+            <dd data-out="total"></dd>
+          </div>
+        </dl>
       </div>
-    </main>
-  </div>
+    </form>
+
+    <p class="main__hint">Saved automatically in this browser. Downloads as a print-ready A4 PDF.</p>
+  </main>
 
   <footer class="footer">
     <button id="open-about" class="footer__link footer__link--btn" type="button">About</button>
@@ -306,48 +204,20 @@
     <button id="open-privacy" class="footer__link footer__link--btn" type="button">Privacy</button>
     <span class="footer__sep" aria-hidden="true"></span>
     <a class="footer__link" href="https://github.com/farhanmunim/invoicer" target="_blank" rel="noopener">Source</a>
-    <span class="footer__spacer"></span>
-    <span class="footer__meta">Runs entirely in your browser</span>
     <span class="footer__sep" aria-hidden="true"></span>
     <span class="footer__built">Built by <a href="https://farhan.app" target="_blank" rel="noopener">Farhan</a></span>
   </footer>
 
-  <nav class="mobile-nav" aria-label="Quick actions">
-    <ul class="mobile-nav__list">
-      <li>
-        <button id="nav-preview" class="mobile-nav__item is-active" type="button">
-          <span class="mobile-nav__icon" aria-hidden="true">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
-          </span>
-          Preview
-        </button>
-      </li>
-      <li>
-        <button id="nav-edit" class="mobile-nav__item" type="button" aria-controls="editor-panel" aria-expanded="false">
-          <span class="mobile-nav__icon" aria-hidden="true">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>
-          </span>
-          Edit
-        </button>
-      </li>
-      <li>
-        <button id="nav-new" class="mobile-nav__item mobile-nav__item--brand" type="button">
-          <span class="mobile-nav__icon" aria-hidden="true">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
-          </span>
-          New
-        </button>
-      </li>
-      <li>
-        <button id="nav-download" class="mobile-nav__item" type="button">
-          <span class="mobile-nav__icon" aria-hidden="true">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg>
-          </span>
-          Download PDF
-        </button>
-      </li>
-    </ul>
-  </nav>
+  <div class="dock">
+    <div class="dock__total">
+      <span class="dock__label">Total</span>
+      <output class="dock__value" data-out="total"></output>
+    </div>
+    <button class="btn btn--ghost btn--icon" type="button" data-action="new" aria-label="New invoice"><svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
+    <button class="btn btn--primary dock__download" type="button" data-action="download"><svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg>Download PDF</button>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <dialog id="about" class="about" aria-labelledby="about-title">
     <div class="about__inner">
@@ -400,10 +270,19 @@
 
   <template id="item-template">
     <li class="item">
-      <input class="field__input item__desc" type="text" placeholder="Description" data-field="description" autocomplete="off" />
-      <input class="field__input item__num" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Qty" data-field="quantity" />
-      <input class="field__input item__num" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Rate" data-field="rate" />
-      <output class="item__amount" data-field="amount"></output>
+      <textarea class="field__input field__input--area item__desc" rows="1" placeholder="Description" data-field="description" autocomplete="off"></textarea>
+      <label class="item__cell item__cell--qty">
+        <span class="item__cap" aria-hidden="true">Qty</span>
+        <input class="field__input item__num" type="number" inputmode="decimal" min="0" step="0.01" placeholder="1" data-field="quantity" />
+      </label>
+      <label class="item__cell item__cell--rate">
+        <span class="item__cap" aria-hidden="true">Rate</span>
+        <input class="field__input item__num" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" data-field="rate" />
+      </label>
+      <div class="item__cell item__cell--amount">
+        <span class="item__cap" aria-hidden="true">Amount</span>
+        <output class="item__amount" data-field="amount"></output>
+      </div>
       <button class="item__remove" type="button">
         <svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
         <span class="sr-only">Remove item</span>

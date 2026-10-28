@@ -6,19 +6,19 @@ A lightweight, client-side invoice generator for freelancers and small businesse
 
 ## Features
 
-- Editor panel with live invoice preview on a dot-grid canvas
+- Edit the invoice in place: one A4-proportioned sheet (page-break guides on desktop), fluid single-column layout on phones
 - Auto-save to `localStorage` on every keystroke
 - "Remember my details & notes" option — keeps your business info + notes across new invoices
 - GBP / USD currency with locale-aware formatting
 - Discount and tax support with totals rounded at each step (no floating-point drift)
-- PDF export via html2canvas + jsPDF, with a native-print fallback
+- Vector A4 PDF (selectable text, multi-page with repeated table header and page numbers); native share sheet on phones
 - Light / dark mode, follows the OS preference until you choose, no flash on load
-- Collapsible editor on desktop; off-canvas editor drawer with bottom navigation on mobile
+- Sticky bottom bar with live total + Download on mobile
 - Fully responsive down to 360px
 
 ## Design
 
-The UI is benchmarked against the [App Blueprint](https://app-blueprint.farhan.app/) design system: Geist / Geist Mono type, the shadcn neutral HSL token set, a 52px topbar, collapsible side panel, dot-grid canvas, slim app footer, and a bottom nav with off-canvas drawer on mobile. All colours, spacing, radii, heights and z-indices are CSS custom properties declared on `:root`; class names follow BEM.
+Minimal paper-on-grey layout: Geist type, neutral tokens, a single dark primary action. The sheet stays light in dark mode so it matches the PDF. All colours, spacing, radii and z-indices are CSS custom properties on `:root`; class names follow BEM.
 
 ## Accessibility
 
@@ -38,7 +38,7 @@ Everything runs client-side. Invoice data is stored only in your browser's `loca
 
 ## Stack
 
-Vanilla HTML, CSS, and JavaScript. No frameworks, no build step. html2canvas and jsPDF are loaded from a CDN for PDF export. Hosted on Cloudflare Pages.
+Vanilla HTML, CSS, and JavaScript. No frameworks, no build step. jsPDF is loaded from a CDN for PDF export. Hosted on Cloudflare Pages.
 
 ## Local use
 
@@ -55,7 +55,7 @@ Drop the folder onto Cloudflare Pages. No build command, no environment variable
 
 ## PDF export
 
-The preview is rasterised with html2canvas (always in the light theme) and written to an A4 PDF with jsPDF. If either library fails to load, the app falls back to the browser's native print pipeline (`window.print()`) with a dedicated `@media print` stylesheet that hides the app chrome and renders only the invoice. In Chrome's print dialog, untick **"Headers and footers"** to remove the browser-injected date / URL lines.
+`invoice-pdf.js` draws the invoice directly with jsPDF at exactly 210×297 mm (not a screenshot), so text is sharp and selectable and no browser header/footer text can appear. Long invoices paginate automatically. On touch devices the file is handed to the native share sheet (Save to Files / Open in…); elsewhere it downloads. jsPDF's built-in font covers Latin/WinAnsi characters; other scripts are transliterated or shown as `?`. Ctrl/Cmd+P also prints just the sheet with `@page { margin: 0 }`.
 
 ## Roadmap
 

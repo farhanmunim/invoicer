@@ -4,13 +4,15 @@
   const STORAGE_KEY = "invoicer.current.v1";
   const SAVED_DETAILS_KEY = "invoicer.saved-details.v1";
   const THEME_KEY = "invoicer.theme";
-  const PANEL_KEY = "invoicer.editor-collapsed";
   const CURRENCY_SYMBOLS = { GBP: "£", USD: "$" };
   const LOCALE_BY_CURRENCY = { GBP: "en-GB", USD: "en-US" };
   const THEME_COLOR = { light: "#ffffff", dark: "#09090b" };
   const DEFAULT_DUE_DAYS = 14;
   const MOBILE_QUERY = "(max-width: 640px)";
-  const PRINT_TITLE_RESET_MS = 500;
+  const SHEET_QUERY = "(min-width: 860px)";
+  const A4_RATIO = 297 / 210;
+  const TOAST_MS = 3500;
+  const URL_REVOKE_MS = 10000;
 
   /* ---------- tiny DOM helpers ---------- */
   const $ = (sel, root = document) => root.querySelector(sel);
@@ -18,6 +20,7 @@
   const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
   const mobileMedia = window.matchMedia(MOBILE_QUERY);
   const isMobile = () => mobileMedia.matches;
+  const coarsePointer = window.matchMedia("(pointer: coarse)");
 
   function storageGet(key) {
     try { return localStorage.getItem(key); } catch { return null; }
@@ -156,112 +159,6 @@
     },
   };
 
-  /* ---------- Editor panel: desktop collapse + mobile drawer ---------- */
-  const Panel = {
-    el: $("#editor-panel"),
-    toggle: $("#panel-toggle"),
-    overlay: $("#overlay"),
-    navEdit: $("#nav-edit"),
-    navPreview: $("#nav-preview"),
-    inertTargets: [$(".topbar"), $("#main"), $(".footer")],
-    lastTrigger: null,
-
-    init() {
-      if (!Panel.el) return;
-      if (storageGet(PANEL_KEY) === "1") Panel.setCollapsed(true, false);
-
-      on(Panel.toggle, "click", () => {
-        if (isMobile()) Panel.closeDrawer();
-        else Panel.setCollapsed(!Panel.el.classList.contains("panel--collapsed"));
-      });
-      on(Panel.overlay, "click", Panel.closeDrawer);
-      on(Panel.navEdit, "click", () => {
-        if (Panel.isDrawerOpen()) Panel.closeDrawer();
-        else Panel.openDrawer(Panel.navEdit);
-      });
-      on(Panel.navPreview, "click", () => {
-        Panel.closeDrawer();
-        $("#main").focus({ preventScroll: true });
-      });
-      on(document, "keydown", (e) => {
-        if (e.key === "Escape" && Panel.isDrawerOpen()) Panel.closeDrawer();
-      });
-      on(mobileMedia, "change", () => {
-        Panel.closeDrawer();
-        Panel.syncToggleLabel();
-      });
-      Panel.syncToggleLabel();
-    },
-
-    setCollapsed(collapsed, persist = true) {
-      Panel.el.classList.toggle("panel--collapsed", collapsed);
-      if (persist) storageSet(PANEL_KEY, collapsed ? "1" : "0");
-      Panel.syncToggleLabel();
-    },
-
-    syncToggleLabel() {
-      if (!Panel.toggle) return;
-      if (isMobile()) {
-        Panel.toggle.setAttribute("aria-label", "Close editor");
-        Panel.toggle.setAttribute("aria-expanded", "true");
-        return;
-      }
-      const collapsed = Panel.el.classList.contains("panel--collapsed");
-      Panel.toggle.setAttribute("aria-label", collapsed ? "Expand editor" : "Collapse editor");
-      Panel.toggle.setAttribute("aria-expanded", String(!collapsed));
-    },
-
-    isDrawerOpen() {
-      return Panel.el.classList.contains("panel--open");
-    },
-
-    openDrawer(trigger) {
-      Panel.lastTrigger = trigger || null;
-      Panel.el.classList.add("panel--open");
-      if (Panel.overlay) {
-        Panel.overlay.hidden = false;
-        requestAnimationFrame(() => Panel.overlay.classList.add("is-visible"));
-      }
-      document.body.classList.add("drawer-open");
-      Panel.inertTargets.forEach((t) => t && (t.inert = true));
-      Panel.navEdit && Panel.navEdit.setAttribute("aria-expanded", "true");
-      MobileNav.setActive("nav-edit");
-      const first = $("#from-name");
-      if (first) first.focus({ preventScroll: true });
-    },
-
-    closeDrawer() {
-      if (!Panel.isDrawerOpen()) return;
-      Panel.el.classList.remove("panel--open");
-      if (Panel.overlay) {
-        Panel.overlay.classList.remove("is-visible");
-        Panel.overlay.hidden = true;
-      }
-      document.body.classList.remove("drawer-open");
-      Panel.inertTargets.forEach((t) => t && (t.inert = false));
-      Panel.navEdit && Panel.navEdit.setAttribute("aria-expanded", "false");
-      MobileNav.setActive("nav-preview");
-      if (Panel.lastTrigger) {
-        Panel.lastTrigger.focus({ preventScroll: true });
-        Panel.lastTrigger = null;
-      }
-    },
-  };
-
-  /* ---------- Mobile bottom nav ---------- */
-  const MobileNav = {
-    items: $$(".mobile-nav__item"),
-
-    init() {
-      on($("#nav-new"), "click", () => { Panel.closeDrawer(); Actions.newInvoice(); });
-      on($("#nav-download"), "click", () => { Panel.closeDrawer(); Actions.downloadPdf(); });
-    },
-
-    setActive(id) {
-      MobileNav.items.forEach((x) => x.classList.toggle("is-active", x.id === id));
-    },
-  };
-
   /* ---------- Formatting ---------- */
   function formatMoney(value) {
     const locale = LOCALE_BY_CURRENCY[state.currency] || "en-GB";
@@ -317,24 +214,53 @@
     return path === "from.name" || path === "from.details" || path === "notes";
   }
 
+  // Zero shows as an empty field (placeholder visible) so users never have to delete a "0"
+  function fieldValue(value) {
+    return value === 0 ? "" : value;
+  }
+
+  /* ---------- Auto-growing textareas + A4 page guides ---------- */
+  const sheetEl = $("#editor");
+
+  function autosize(el) {
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }
+
+  function autosizeAll() {
+    $$("textarea.field__input--area").forEach(autosize);
+  }
+
+  function updatePageGuides() {
+    sheetEl.style.setProperty("--pages", 1);
+    if (!window.matchMedia(SHEET_QUERY).matches) return;
+    const pageHeight = sheetEl.offsetWidth * A4_RATIO;
+    const pages = Math.max(1, Math.ceil((sheetEl.scrollHeight - 1) / pageHeight));
+    sheetEl.style.setProperty("--pages", pages);
+  }
+
+  function layout() {
+    autosizeAll();
+    updatePageGuides();
+  }
+
   function bindFields() {
     // Enter inside a text field must never reload the page
-    on($("#editor"), "submit", (e) => e.preventDefault());
+    on(sheetEl, "submit", (e) => e.preventDefault());
 
     $$("[data-bind]").forEach((el) => {
       const path = el.dataset.bind;
-      const val = getByPath(state, path);
-      if (val != null) el.value = val;
       el.addEventListener("input", () => {
         const isNumber = el.type === "number";
         setByPath(state, path, isNumber ? Number(el.value) : el.value);
         if (state.remember && isRememberedPath(path)) writeSavedDetails();
+        if (el.tagName === "TEXTAREA") autosize(el);
         persistAndRender();
       });
     });
+    bindAllValues();
 
     const rememberEl = $("#remember");
-    rememberEl.checked = !!state.remember;
     rememberEl.addEventListener("change", () => {
       state.remember = rememberEl.checked;
       if (state.remember) writeSavedDetails();
@@ -342,15 +268,13 @@
       saveState();
     });
 
-    const currencyEl = $("#currency");
-    currencyEl.value = state.currency;
-    currencyEl.addEventListener("change", () => {
-      state.currency = currencyEl.value;
+    $("#currency").addEventListener("change", (e) => {
+      state.currency = e.target.value;
       persistAndRender();
     });
   }
 
-  /* ---------- Items rendering ---------- */
+  /* ---------- Line items ---------- */
   const itemsEl = $("#items");
   const template = $("#item-template");
 
@@ -363,23 +287,27 @@
     node.querySelector(".item__remove").setAttribute("aria-label", `Remove item ${n}`);
   }
 
+  function focusItem(index) {
+    const rows = $$(".item", itemsEl);
+    const target = rows[Math.max(0, Math.min(index, rows.length - 1))];
+    if (target) target.querySelector('[data-field="description"]').focus();
+  }
+
   function renderItems() {
     itemsEl.textContent = "";
     state.items.forEach((item, index) => {
       const node = template.content.firstElementChild.cloneNode(true);
       node.dataset.id = item.id;
       node.querySelector('[data-field="description"]').value = item.description;
-      node.querySelector('[data-field="quantity"]').value = item.quantity;
-      node.querySelector('[data-field="rate"]').value = item.rate;
-      const amountEl = node.querySelector('[data-field="amount"]');
-      amountEl.value = formatMoney(lineAmount(item));
+      node.querySelector('[data-field="quantity"]').value = fieldValue(item.quantity);
+      node.querySelector('[data-field="rate"]').value = fieldValue(item.rate);
       labelItem(node, index);
 
       node.addEventListener("input", (e) => {
         const field = e.target.dataset.field;
         if (!field) return;
         item[field] = e.target.type === "number" ? Number(e.target.value) : e.target.value;
-        amountEl.value = formatMoney(lineAmount(item));
+        if (e.target.tagName === "TEXTAREA") autosize(e.target);
         persistAndRender();
       });
 
@@ -389,100 +317,96 @@
         if (state.items.length === 0) state.items.push(newItem());
         saveState();
         renderItems();
-        renderPreview();
-        // Keep keyboard focus in the list after removal
-        const rows = $$(".item", itemsEl);
-        const target = rows[Math.min(idx, rows.length - 1)];
-        if (target) target.querySelector('[data-field="description"]').focus();
+        renderTotals();
+        focusItem(idx);
       });
 
       itemsEl.appendChild(node);
+      autosize(node.querySelector('[data-field="description"]'));
     });
+    renderTotals();
   }
 
   on($("#add-item"), "click", () => {
     state.items.push(newItem());
     saveState();
     renderItems();
-    renderPreview();
-    const rows = $$(".item", itemsEl);
-    const last = rows[rows.length - 1];
-    if (last) last.querySelector('[data-field="description"]').focus();
+    focusItem(state.items.length - 1);
   });
 
-  /* ---------- Preview rendering ---------- */
-  const previewItemsEl = $("#preview-items");
-
-  function renderPreview() {
+  /* ---------- Totals + amounts ---------- */
+  function renderTotals() {
     const totals = computeTotals();
-
-    $$("[data-out]").forEach((el) => {
-      const key = el.dataset.out;
-      if (key === "subtotal") el.textContent = formatMoney(totals.subtotal);
-      else if (key === "discountAmount") el.textContent = `− ${formatMoney(totals.discountAmount)}`;
-      else if (key === "taxAmount") el.textContent = formatMoney(totals.taxAmount);
-      else if (key === "total") el.textContent = formatMoney(totals.total);
-      else if (key === "issueDate" || key === "dueDate") {
-        el.textContent = formatDate(state[key]);
-        if (parseISODate(state[key])) el.setAttribute("datetime", state[key]);
-        else el.removeAttribute("datetime");
-      } else {
-        const val = getByPath(state, key);
-        el.textContent = val || placeholderFor(key);
-      }
-    });
-
-    previewItemsEl.textContent = "";
-    state.items.forEach((it) => {
-      const tr = document.createElement("tr");
-      const cells = [
-        ["invoice__td invoice__td--desc", it.description || "—"],
-        ["invoice__td invoice__td--num", (Number(it.quantity) || 0).toString()],
-        ["invoice__td invoice__td--num", formatMoney(Number(it.rate) || 0)],
-        ["invoice__td invoice__td--num", formatMoney(lineAmount(it))],
-      ];
-      cells.forEach(([className, text]) => {
-        const td = document.createElement("td");
-        td.className = className;
-        td.textContent = text;
-        tr.appendChild(td);
-      });
-      previewItemsEl.appendChild(tr);
-    });
-
-    toggleRow("discount", Number(state.discount) > 0);
-    toggleRow("tax", Number(state.tax) > 0);
-    toggleRow("notes", !!String(state.notes || "").trim());
-  }
-
-  function toggleRow(name, shouldShow) {
-    $$(`[data-row="${name}"]`).forEach((el) => { el.hidden = !shouldShow; });
-  }
-
-  function placeholderFor(key) {
-    const map = {
-      "from.name": "Your business",
-      "from.details": "Your address",
-      "to.name": "Client",
-      "to.details": "Client address",
+    const text = {
+      subtotal: formatMoney(totals.subtotal),
+      discountAmount: Number(state.discount) > 0 ? `-${formatMoney(totals.discountAmount)}` : formatMoney(0),
+      taxAmount: formatMoney(totals.taxAmount),
+      total: formatMoney(totals.total),
     };
-    return map[key] || "";
+    $$("[data-out]").forEach((el) => { el.textContent = text[el.dataset.out]; });
+    $$(".item", itemsEl).forEach((node, i) => {
+      node.querySelector('[data-field="amount"]').value = formatMoney(lineAmount(state.items[i]));
+    });
+    updatePageGuides();
   }
 
-  /* ---------- Persist + render ---------- */
   function persistAndRender() {
     saveState();
-    renderPreview();
+    renderTotals();
+  }
+
+  /* ---------- Toast ---------- */
+  const Toast = {
+    el: $("#toast"),
+    timer: 0,
+    show(message) {
+      Toast.el.textContent = message;
+      Toast.el.hidden = false;
+      clearTimeout(Toast.timer);
+      Toast.timer = setTimeout(() => { Toast.el.hidden = true; }, TOAST_MS);
+    },
+  };
+
+  /* ---------- PDF delivery ---------- */
+  function safeFilename(name) {
+    const base = String(name || "Invoice").replace(/[\\/:*?"<>|\u0000-\u001f]/g, "-").trim() || "Invoice";
+    return `${base}.pdf`;
+  }
+
+  function saveBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), URL_REVOKE_MS);
+  }
+
+  // Touch devices: the native share sheet offers "Save to Files" / "Open in…" reliably.
+  // Desktop and everything else: a normal download.
+  async function deliverPdf(blob, filename) {
+    const file = new File([blob], filename, { type: "application/pdf" });
+    if (coarsePointer.matches && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: filename });
+        return;
+      } catch (err) {
+        if (err && err.name === "AbortError") return;
+      }
+    }
+    saveBlob(blob, filename);
   }
 
   /* ---------- Actions ---------- */
   const Actions = {
-    downloadButtons: [$("#download"), $("#nav-download")].filter(Boolean),
+    downloadButtons: $$('[data-action="download"]'),
     busy: false,
 
     init() {
-      on($("#download"), "click", Actions.downloadPdf);
-      on($("#reset"), "click", Actions.newInvoice);
+      $$('[data-action="download"]').forEach((b) => on(b, "click", Actions.downloadPdf));
+      $$('[data-action="new"]').forEach((b) => on(b, "click", Actions.newInvoice));
     },
 
     setBusy(busy) {
@@ -493,66 +417,27 @@
       });
     },
 
-    printFallback() {
-      const originalTitle = document.title;
-      document.title = state.number || "Invoice";
-      window.print();
-      setTimeout(() => { document.title = originalTitle; }, PRINT_TITLE_RESET_MS);
-    },
-
     async downloadPdf() {
       if (Actions.busy) return;
-      const filename = `${state.number || "Invoice"}.pdf`;
-      const preview = $("#preview");
-
-      if (!window.html2canvas || !window.jspdf) {
-        Actions.printFallback();
+      if (!window.jspdf || !window.InvoicePdf) {
+        Toast.show("PDF engine didn't load. Check your connection and try again.");
         return;
       }
-
       Actions.setBusy(true);
-      const root = document.documentElement;
-      const previousTheme = root.getAttribute("data-theme");
-      root.setAttribute("data-theme", "light");
-
       try {
-        const canvas = await window.html2canvas(preview, {
-          scale: 2,
-          backgroundColor: "#ffffff",
-          useCORS: true,
-          windowWidth: preview.scrollWidth,
+        const doc = window.InvoicePdf.build({
+          state,
+          totals: computeTotals(),
+          money: formatMoney,
+          date: formatDate,
+          lineAmount,
         });
-
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-        const pageW = pdf.internal.pageSize.getWidth();
-        const pageH = pdf.internal.pageSize.getHeight();
-        const imgW = pageW;
-        const imgH = (canvas.height * imgW) / canvas.width;
-        const imgData = canvas.toDataURL("image/png");
-
-        if (imgH <= pageH) {
-          pdf.addImage(imgData, "PNG", 0, 0, imgW, imgH);
-        } else {
-          let remaining = imgH;
-          let position = 0;
-          while (remaining > 0) {
-            pdf.addImage(imgData, "PNG", 0, position, imgW, imgH);
-            remaining -= pageH;
-            if (remaining > 0) {
-              position -= pageH;
-              pdf.addPage();
-            }
-          }
-        }
-
-        pdf.save(filename);
+        const blob = doc.output("blob");
+        await deliverPdf(blob, safeFilename(state.number));
       } catch (err) {
-        console.error("PDF export failed, falling back to print", err);
-        Actions.printFallback();
+        console.error("PDF export failed", err);
+        Toast.show("Couldn't create the PDF. Please try again.");
       } finally {
-        if (previousTheme) root.setAttribute("data-theme", previousTheme);
-        else root.removeAttribute("data-theme");
         Actions.setBusy(false);
       }
     },
@@ -583,7 +468,6 @@
       on($("#open-about"), "click", () => About.open());
       on($("#open-privacy"), "click", () => About.open($("#about-privacy")));
       on($("#about-close"), "click", () => About.close());
-      // Click on the backdrop (outside the inner panel) closes
       on(About.dialog, "click", (e) => {
         if (e.target === About.dialog) About.close();
       });
@@ -605,27 +489,27 @@
   };
 
   /* ---------- Init ---------- */
-  function renderAll() {
-    bindAllValues();
-    renderItems();
-    renderPreview();
-  }
-
   function bindAllValues() {
     $$("[data-bind]").forEach((el) => {
       const val = getByPath(state, el.dataset.bind);
-      if (val != null) el.value = val;
+      if (val != null) el.value = fieldValue(val);
     });
     $("#currency").value = state.currency;
     $("#remember").checked = !!state.remember;
   }
 
+  function renderAll() {
+    bindAllValues();
+    renderItems();
+    layout();
+  }
+
   Theme.init();
-  Panel.init();
-  MobileNav.init();
   Actions.init();
   About.init();
   bindFields();
   renderItems();
-  renderPreview();
+  layout();
+  on(window, "resize", layout);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
 })();
