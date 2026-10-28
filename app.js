@@ -8,7 +8,7 @@
   const LOCALE_BY_CURRENCY = { GBP: "en-GB", USD: "en-US" };
   const THEME_COLOR = { light: "#ffffff", dark: "#09090b" };
   const DEFAULT_DUE_DAYS = 14;
-  const DESIGNS = ["minimal", "classic", "modern", "bold"];
+  const DESIGNS = ["minimal", "modern", "bold", "centered"];
   const DEFAULT_DESIGN = "minimal";
   const ACCENTS = [
     { id: "ink", label: "Ink", hex: "#18181b" },
@@ -357,6 +357,7 @@
       discountAmount: Number(state.discount) > 0 ? `-${formatMoney(totals.discountAmount)}` : formatMoney(0),
       taxAmount: formatMoney(totals.taxAmount),
       total: formatMoney(totals.total),
+      dueLabel: formatDate(state.dueDate) || "-",
     };
     $$("[data-out]").forEach((el) => { el.textContent = text[el.dataset.out]; });
     $$(".item", itemsEl).forEach((node, i) => {

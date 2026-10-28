@@ -27,14 +27,15 @@
   const BAND_TINT = 0.07;
   const INSET = 2;
   const TOTALS_INSET = 3;
+  const NOTES_SIDE_MAX_LINES = 6;
   const ACCENT_FALLBACK = "#18181b";
 
   /* One entry per design. Keep in step with the [data-design] rules in styles.css. */
   const DESIGNS = {
-    minimal: { font: "helvetica", scale: 1, titleSize: 24, upper: false, titleAccent: false, topBar: false, headRule: "hair", tableHead: "rule", banded: false, total: "rule" },
-    classic: { font: "times", scale: 1.08, titleSize: 26, upper: false, titleAccent: true, topBar: false, headRule: "thin", tableHead: "ruled", banded: false, total: "rule" },
-    modern: { font: "helvetica", scale: 1, titleSize: 24, upper: false, titleAccent: true, topBar: true, headRule: "hair", tableHead: "accent", banded: true, total: "accent" },
-    bold: { font: "helvetica", scale: 1, titleSize: 34, upper: true, titleAccent: false, topBar: false, headRule: "heavy", tableHead: "filled", banded: false, total: "block" },
+    minimal: { layout: "standard", titleSize: 24, upper: false, titleAccent: false, topBar: false, headRule: "hair", tableHead: "rule", banded: false, total: "rule" },
+    modern: { layout: "letterhead", titleSize: 24, upper: false, titleAccent: true, topBar: true, headRule: null, tableHead: "accent", banded: true, total: "accent" },
+    bold: { layout: "hero", titleSize: 34, upper: true, titleAccent: false, topBar: false, headRule: "heavy", tableHead: "filled", banded: false, total: "block" },
+    centered: { layout: "centered", titleSize: 24, upper: false, titleAccent: false, topBar: false, headRule: "hair", tableHead: "rule", banded: false, total: "rule" },
   };
 
   // jsPDF's built-in fonts only cover WinAnsi; anything else would print as garbage.
@@ -67,14 +68,17 @@
     const theme = DESIGNS[state.design] || DESIGNS.minimal;
     const accent = hexToRgb(state.accent);
     const inset = theme.tableHead === "filled" || theme.banded ? INSET : 0;
+    const title = theme.upper ? "INVOICE" : "Invoice";
+    const titleColor = theme.titleAccent ? accent : COLOR.ink;
+    const titleH = theme.titleSize * PT_TO_MM;
     const totalsInset = theme.total === "block" ? TOTALS_INSET : 0;
     const limitY = PAGE_H - MARGIN - FOOTER_RESERVE;
-    const lh = (size) => size * theme.scale * PT_TO_MM * LINE_HEIGHT;
+    const lh = (size) => size * PT_TO_MM * LINE_HEIGHT;
     let y = MARGIN;
 
     const style = (size = SIZE.body, bold = false, color = COLOR.ink) => {
-      doc.setFont(theme.font, bold ? "bold" : "normal");
-      doc.setFontSize(size * theme.scale);
+      doc.setFont("helvetica", bold ? "bold" : "normal");
+      doc.setFontSize(size);
       doc.setTextColor(...color);
     };
     const put = (str, x, atY, size, bold, color, align = "left") => {
@@ -110,36 +114,27 @@
       if (redraw) redraw();
     };
 
-    /* Header: title + number / dates */
+    /* Header + parties: arrangement depends on the design's layout */
     drawTopBar();
-    const titleH = theme.titleSize * theme.scale * PT_TO_MM;
-    put(theme.upper ? "INVOICE" : "Invoice", MARGIN, y, theme.titleSize, true, theme.titleAccent ? accent : COLOR.ink);
-    const metaY = y + Math.max(0, titleH - 10);
-    const meta = [
+    const metaItems = [
       ["NUMBER", fit(state.number || "-", META_MAX_W, SIZE.body, false)],
       ["ISSUED", date(state.issueDate) || "-"],
       ["DUE", date(state.dueDate) || "-"],
     ];
-    meta.forEach(([label, value], i) => {
-      const x = RIGHT - META_GAP * (meta.length - 1 - i);
-      put(label, x, metaY + 1, SIZE.small, false, COLOR.muted, "right");
-      put(value, x, metaY + 5, SIZE.body, false, COLOR.ink, "right");
-    });
-    y += Math.max(titleH, 10) + 6;
-    if (theme.headRule === "heavy") fill(MARGIN, y, CONTENT_W, 1.1, accent);
-    else if (theme.headRule === "thin") line(MARGIN, y, RIGHT, 0.35, accent);
-    else hair(y);
-    y += 8;
-
-    /* Parties */
-    const party = (label, p, x) => {
-      let py = y;
-      put(label, x, py, SIZE.small, false, COLOR.muted);
-      py += lh(SIZE.small) + 1;
+    const headRule = () => {
+      if (theme.headRule === "heavy") fill(MARGIN, y, CONTENT_W, 1.1, accent);
+      else if (theme.headRule === "hair") hair(y);
+    };
+    const party = (label, p, x, startY, nameSize = SIZE.name) => {
+      let py = startY;
+      if (label) {
+        put(label, x, py, SIZE.small, false, COLOR.muted);
+        py += lh(SIZE.small) + 1;
+      }
       if (p.name) {
-        const lines = wrap(p.name, COL.partyW, SIZE.name, true);
-        put(lines, x, py, SIZE.name, true, COLOR.ink);
-        py += lines.length * lh(SIZE.name);
+        const lines = wrap(p.name, COL.partyW, nameSize, true);
+        put(lines, x, py, nameSize, true, COLOR.ink);
+        py += lines.length * lh(nameSize);
       }
       if (p.details) {
         const lines = wrap(p.details, COL.partyW, SIZE.body, false);
@@ -148,9 +143,64 @@
       }
       return py;
     };
-    const fromEnd = party("FROM", state.from, MARGIN);
-    const toEnd = party("BILL TO", state.to, MARGIN + COL.partyGap);
-    y = Math.max(fromEnd, toEnd) + 10;
+    const parties = () => {
+      const fromEnd = party("FROM", state.from, MARGIN, y);
+      const toEnd = party("BILL TO", state.to, MARGIN + COL.partyGap, y);
+      y = Math.max(fromEnd, toEnd) + 10;
+    };
+
+    if (theme.layout === "letterhead") {
+      const fromEnd = party(null, state.from, MARGIN, y, 14);
+      put(title, RIGHT, y, theme.titleSize, true, titleColor, "right");
+      y = Math.max(fromEnd, y + titleH) + 10;
+      const toEnd = party("BILL TO", state.to, MARGIN, y);
+      let my = y;
+      metaItems.forEach(([label, value]) => {
+        put(label[0] + label.slice(1).toLowerCase(), RIGHT - 48, my, SIZE.body, false, COLOR.muted);
+        put(value, RIGHT, my, SIZE.body, false, COLOR.ink, "right");
+        my += lh(SIZE.body) + 1.5;
+      });
+      y = Math.max(toEnd, my) + 10;
+    } else if (theme.layout === "hero") {
+      put(title, MARGIN, y, theme.titleSize, true, titleColor);
+      put("AMOUNT DUE", RIGHT, y + 1, SIZE.small, false, COLOR.muted, "right");
+      put(money(totals.total), RIGHT, y + 4.5, 20, true, COLOR.ink, "right");
+      put(`Due ${date(state.dueDate) || "-"}`, RIGHT, y + 4.5 + lh(20) + 0.5, SIZE.body, false, COLOR.muted, "right");
+      y += Math.max(titleH, 4.5 + lh(20) + lh(SIZE.body)) + 6;
+      headRule();
+      y += 7;
+      metaItems.forEach(([label, value], i) => {
+        const x = MARGIN + i * 58;
+        put(label, x, y, SIZE.small, false, COLOR.muted);
+        put(value, x, y + 4, SIZE.body, false, COLOR.ink);
+      });
+      y += 17;
+      parties();
+    } else if (theme.layout === "centered") {
+      put(title, PAGE_W / 2, y, theme.titleSize, true, titleColor, "center");
+      y += titleH + 5;
+      metaItems.forEach(([label, value], i) => {
+        const x = PAGE_W / 2 + (i - 1) * META_GAP;
+        put(label, x, y, SIZE.small, false, COLOR.muted, "center");
+        put(value, x, y + 4, SIZE.body, false, COLOR.ink, "center");
+      });
+      y += 15;
+      headRule();
+      y += 8;
+      parties();
+    } else {
+      put(title, MARGIN, y, theme.titleSize, true, titleColor);
+      const metaY = y + Math.max(0, titleH - 10);
+      metaItems.forEach(([label, value], i) => {
+        const x = RIGHT - META_GAP * (metaItems.length - 1 - i);
+        put(label, x, metaY + 1, SIZE.small, false, COLOR.muted, "right");
+        put(value, x, metaY + 5, SIZE.body, false, COLOR.ink, "right");
+      });
+      y += Math.max(titleH, 10) + 6;
+      headRule();
+      y += 8;
+      parties();
+    }
 
     /* Line items */
     const descX = MARGIN + inset;
@@ -164,16 +214,12 @@
       if (kind === "filled") {
         fill(MARGIN, y, CONTENT_W, labelH + 6, accent);
         top = y + 3;
-      } else if (kind === "ruled") {
-        line(MARGIN, y, RIGHT, 0.35, accent);
-        top = y + 2;
       }
       put("DESCRIPTION", descX, top, SIZE.small, bold, labelColor);
       put("QTY", COL.qtyX, top, SIZE.small, bold, labelColor, "right");
       put("RATE", COL.rateX, top, SIZE.small, bold, labelColor, "right");
       put("AMOUNT", amountX, top, SIZE.small, bold, labelColor, "right");
       if (kind === "filled") y += labelH + 6;
-      else if (kind === "ruled") { y = top + labelH + 2; line(MARGIN, y, RIGHT, 0.35, accent); }
       else { y += labelH + 2; line(MARGIN, y, RIGHT, kind === "accent" ? 0.5 : 0.2, kind === "rule" || kind === "accent" ? accent : COLOR.rule); }
     };
     ensure(20);
@@ -196,13 +242,19 @@
     if (theme.banded) hair(y);
     y += 8;
 
-    /* Totals */
+    /* Totals, with short notes alongside (matches the sheet) */
     const rows = [["Subtotal", money(totals.subtotal)]];
     if (Number(state.discount) > 0) rows.push([`Discount (${Number(state.discount)}%)`, `-${money(totals.discountAmount)}`]);
     if (Number(state.tax) > 0) rows.push([`Tax (${Number(state.tax)}%)`, money(totals.taxAmount)]);
     const rowH = lh(SIZE.body) + 1.5;
     const blockH = lh(SIZE.total) + 6;
-    ensure(rows.length * rowH + blockH + 8);
+    const notes = String(state.notes || "").trim();
+    const sideLines = notes ? wrap(notes, COL.descW, SIZE.body, false) : [];
+    const sideBySide = sideLines.length > 0 && sideLines.length <= NOTES_SIDE_MAX_LINES;
+    const totalsH = rows.length * rowH + 1 + (theme.total === "block" ? blockH : lh(SIZE.total) + 3);
+    const notesH = lh(SIZE.small) + 1.5 + sideLines.length * lh(SIZE.body);
+    ensure(Math.max(totalsH, sideBySide ? notesH : 0) + 8);
+    const blockTop = y;
     rows.forEach(([label, value]) => {
       put(label, COL.totalsX + totalsInset, y, SIZE.body, false, COLOR.muted);
       put(value, RIGHT - totalsInset, y, SIZE.body, false, COLOR.ink, "right");
@@ -213,19 +265,24 @@
       fill(COL.totalsX, y, RIGHT - COL.totalsX, blockH, accent);
       put("Total", COL.totalsX + totalsInset, y + 3.5, SIZE.total, true, COLOR.white);
       put(money(totals.total), RIGHT - totalsInset, y + 3.5, SIZE.total, true, COLOR.white, "right");
-      y += blockH + 10;
+      y += blockH;
     } else {
       line(COL.totalsX, y, RIGHT, theme.total === "accent" ? 0.5 : 0.3, accent);
       y += 3;
       const totalColor = theme.total === "accent" ? accent : COLOR.ink;
       put("Total", COL.totalsX, y, SIZE.total, true, totalColor);
       put(money(totals.total), RIGHT, y, SIZE.total, true, totalColor, "right");
-      y += lh(SIZE.total) + 10;
+      y += lh(SIZE.total);
     }
+    if (sideBySide) {
+      put("NOTES", MARGIN, blockTop, SIZE.small, false, COLOR.muted);
+      put(sideLines, MARGIN, blockTop + lh(SIZE.small) + 1.5, SIZE.body, false, COLOR.ink);
+      y = Math.max(y, blockTop + notesH);
+    }
+    y += 10;
 
-    /* Notes (flows across pages line by line) */
-    const notes = String(state.notes || "").trim();
-    if (notes) {
+    /* Longer notes flow across pages below the totals, line by line */
+    if (notes && !sideBySide) {
       const lines = wrap(notes, CONTENT_W, SIZE.body, false);
       ensure(lh(SIZE.small) + lh(SIZE.body) * 2 + 2);
       put("NOTES", MARGIN, y, SIZE.small, false, COLOR.muted);

@@ -254,12 +254,18 @@ button { cursor: pointer; }
   letter-spacing: var(--tracking-body);
 }
 
-.sheet__head { display: flex; flex-direction: column; gap: var(--space-4); }
+/* Header area: one grid, each design places the blocks differently (see Designs).
+   Mobile is always a single column in DOM order: title, amount, meta, rule, from, to. */
+.sheet__top { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-5); }
+.sheet__hero { display: none; }
+.sheet__hero-label { font: var(--weight-regular) var(--text-xs)/1 var(--font-mono); letter-spacing: var(--tracking-eyebrow); text-transform: uppercase; color: var(--paper-muted); }
+.sheet__hero-amount { font-size: var(--text-3xl); font-weight: var(--weight-bold); letter-spacing: var(--tracking-snug); font-variant-numeric: tabular-nums; line-height: 1.1; overflow-wrap: anywhere; }
+.sheet__hero-due { font-size: var(--text-base); color: var(--paper-muted); }
+.sheet__rule { margin: 0; border: 0; height: 1px; background: var(--paper-line); }
 .sheet__title { font-size: var(--text-4xl); font-weight: var(--weight-bold); letter-spacing: var(--tracking-tight-heading); line-height: 1.1; }
 .sheet__meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
 .sheet__meta .field:first-child { grid-column: 1 / -1; }
 
-.sheet__parties { display: grid; grid-template-columns: 1fr; gap: var(--space-6); }
 .party { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
 
 /* Fields */
@@ -346,11 +352,16 @@ input[type="number"].field__input::-webkit-inner-spin-button { -webkit-appearanc
     /* page-break guides every A4 height */
     background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--sheet-h) - 1px), var(--paper-guide) calc(var(--sheet-h) - 1px), var(--paper-guide) var(--sheet-h));
   }
-  .sheet__head { flex-direction: row; justify-content: space-between; align-items: flex-start; }
+  .sheet__top { grid-template-columns: 1fr 1fr; column-gap: 14mm; row-gap: 8mm; align-items: start; }
   .sheet__title { font-size: 34px; padding-top: 2px; }
   .sheet__meta { grid-template-columns: 130px 150px 150px; }
   .sheet__meta .field:first-child { grid-column: auto; }
-  .sheet__parties { grid-template-columns: 1fr 1fr; gap: 14mm; }
+  /* Minimal (default): title left, meta right, rule, parties side by side */
+  .sheet__title { grid-area: 1 / 1 / 2 / 2; }
+  .sheet__meta { grid-area: 1 / 1 / 2 / 3; justify-self: end; }
+  .sheet__rule { grid-area: 2 / 1 / 3 / 3; }
+  .party--from { grid-area: 3 / 1 / 4 / 2; }
+  .party--to { grid-area: 3 / 2 / 4 / 3; }
 
   .items__head {
     display: grid; grid-template-columns: 1fr 70px 100px 110px 32px; gap: var(--space-2);
@@ -376,20 +387,6 @@ input[type="number"].field__input::-webkit-inner-spin-button { -webkit-appearanc
 
 /* ---------- Designs: monotone, one accent (--doc-accent) ----------
    Keep in step with DESIGNS in invoice-pdf.js. */
-.sheet[data-design="classic"] {
-  font-family: "Times New Roman", Times, "Liberation Serif", serif;
-  letter-spacing: 0;
-}
-.sheet[data-design="classic"] .field__input,
-.sheet[data-design="classic"] .item__amount { font-size: 17px; }
-.sheet[data-design="classic"] .field__label,
-.sheet[data-design="classic"] .item__cap,
-.sheet[data-design="classic"] .items__head { font-family: inherit; font-size: var(--text-sm); letter-spacing: .1em; }
-.sheet[data-design="classic"] .sheet__title { color: var(--doc-accent); letter-spacing: -0.01em; }
-.sheet[data-design="classic"] .sheet__head { padding-bottom: var(--space-4); border-bottom: 1px solid var(--doc-accent); }
-.sheet[data-design="classic"] .items__head { padding-top: var(--space-2); border-top: 1px solid var(--doc-accent); border-bottom-width: 1px; }
-.sheet[data-design="classic"] .totals__row--grand { border-top-width: 1px; }
-
 .sheet[data-design="modern"]::before {
   content: ""; position: absolute; inset: 0 0 auto 0; height: 6px;
   background: var(--doc-accent); border-radius: inherit;
@@ -404,7 +401,9 @@ input[type="number"].field__input::-webkit-inner-spin-button { -webkit-appearanc
 .sheet[data-design="modern"] .item:last-child { border-bottom-color: var(--paper-line); }
 
 .sheet[data-design="bold"] .sheet__title { font-size: var(--text-4xl); font-weight: 800; text-transform: uppercase; letter-spacing: var(--tracking-tight-heading); }
-.sheet[data-design="bold"] .sheet__head { padding-bottom: var(--space-4); border-bottom: 4px solid var(--doc-accent); }
+.sheet[data-design="bold"] .sheet__rule { height: 4px; background: var(--doc-accent); }
+.sheet[data-design="bold"] .sheet__hero { display: flex; flex-direction: column; gap: var(--space-1-5); }
+.sheet[data-design="modern"] .sheet__rule { display: none; }
 .sheet[data-design="bold"] .items__head { padding: var(--space-2); border: 0; background: var(--doc-accent); color: #fff; }
 .sheet[data-design="bold"] .totals__row--grand { margin-top: var(--space-3); padding: var(--space-3); border: 0; background: var(--doc-accent); color: #fff; }
 .sheet[data-design="bold"] .totals__row--grand dt { color: #fff; }
@@ -413,6 +412,33 @@ input[type="number"].field__input::-webkit-inner-spin-button { -webkit-appearanc
   .sheet[data-design="bold"] .sheet__title { font-size: 46px; }
   .sheet[data-design="modern"] .item { margin-inline: calc(-1 * var(--space-2)); padding-inline: var(--space-2); }
   .sheet[data-design="bold"] .item { padding-inline: var(--space-2); }
+}
+
+/* Layout per design (desktop). Mobile keeps the single column. */
+@media (min-width: 860px) {
+  /* Modern: letterhead. From top-left, title top-right, bill-to left, meta stacked right */
+  .sheet[data-design="modern"] .party--from { grid-area: 1 / 1 / 2 / 2; }
+  .sheet[data-design="modern"] .sheet__title { grid-area: 1 / 2 / 2 / 3; text-align: right; }
+  .sheet[data-design="modern"] .party--to { grid-area: 2 / 1 / 3 / 2; }
+  .sheet[data-design="modern"] .sheet__meta { grid-area: 2 / 2 / 3 / 3; justify-self: end; grid-template-columns: 190px; }
+  .sheet[data-design="modern"] #from-name { font-size: var(--text-xl); font-weight: var(--weight-bold); }
+
+  /* Bold: title + amount due, heavy rule, meta strip, parties */
+  .sheet[data-design="bold"] .sheet__title { grid-area: 1 / 1 / 2 / 2; align-self: end; }
+  .sheet[data-design="bold"] .sheet__hero { grid-area: 1 / 2 / 2 / 3; align-items: flex-end; text-align: right; }
+  .sheet[data-design="bold"] .sheet__hero-amount { font-size: 32px; }
+  .sheet[data-design="bold"] .sheet__rule { grid-area: 2 / 1 / 3 / 3; }
+  .sheet[data-design="bold"] .sheet__meta { grid-area: 3 / 1 / 4 / 3; justify-self: stretch; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sheet[data-design="bold"] .party--from { grid-area: 4 / 1 / 5 / 2; }
+  .sheet[data-design="bold"] .party--to { grid-area: 4 / 2 / 5 / 3; }
+
+  /* Centered: title and meta centred, rule, parties */
+  .sheet[data-design="centered"] .sheet__title { grid-area: 1 / 1 / 2 / 3; justify-self: center; }
+  .sheet[data-design="centered"] .sheet__meta { grid-area: 2 / 1 / 3 / 3; justify-self: center; grid-template-columns: repeat(3, 150px); text-align: center; }
+  .sheet[data-design="centered"] .sheet__meta .field__input { text-align: center; }
+  .sheet[data-design="centered"] .sheet__rule { grid-area: 3 / 1 / 4 / 3; }
+  .sheet[data-design="centered"] .party--from { grid-area: 4 / 1 / 5 / 2; }
+  .sheet[data-design="centered"] .party--to { grid-area: 4 / 2 / 5 / 3; }
 }
 
 /* ---------- Footer ---------- */
