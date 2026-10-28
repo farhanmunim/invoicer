@@ -13,6 +13,7 @@ A lightweight, client-side invoice generator for freelancers and small businesse
 - Discount and tax support with totals rounded at each step (no floating-point drift)
 - Vector A4 PDF (selectable text, multi-page with repeated table header and page numbers); native share sheet on phones
 - Light / dark mode, follows the OS preference until you choose, no flash on load
+- Four print-friendly designs (Minimal, Classic, Modern, Bold), monotone by default with one optional accent colour; the choice applies to both the sheet and the PDF and is kept across new invoices
 - Sticky bottom bar with live total + Download on mobile
 - Fully responsive down to 360px
 
@@ -55,7 +56,7 @@ Drop the folder onto Cloudflare Pages. No build command, no environment variable
 
 ## PDF export
 
-`invoice-pdf.js` draws the invoice directly with jsPDF at exactly 210×297 mm (not a screenshot), so text is sharp and selectable and no browser header/footer text can appear. Long invoices paginate automatically. On touch devices the file is handed to the native share sheet (Save to Files / Open in…); elsewhere it downloads. jsPDF's built-in font covers Latin/WinAnsi characters; other scripts are transliterated or shown as `?`. Ctrl/Cmd+P also prints just the sheet with `@page { margin: 0 }`.
+`invoice-pdf.js` (designs are defined in its `DESIGNS` map and mirrored by the `[data-design]` rules in `styles.css`) draws the invoice directly with jsPDF at exactly 210×297 mm (not a screenshot), so text is sharp and selectable and no browser header/footer text can appear. Long invoices paginate automatically. On touch devices the file is handed to the native share sheet (Save to Files / Open in…); elsewhere it downloads. jsPDF's built-in font covers Latin/WinAnsi characters; other scripts are transliterated or shown as `?`. Ctrl/Cmd+P also prints just the sheet with `@page { margin: 0 }`.
 
 ## Roadmap
 

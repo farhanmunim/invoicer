@@ -106,6 +106,10 @@
         </svg>
         <svg class="icon theme-toggle__dark" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" /></svg>
       </button>
+      <button id="open-design" class="btn btn--ghost topbar__design" type="button" aria-haspopup="dialog">
+        <svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13.5" cy="6.5" r=".5" /><circle cx="17.5" cy="10.5" r=".5" /><circle cx="8.5" cy="7.5" r=".5" /><circle cx="6.5" cy="12.5" r=".5" /><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.75 1.5-1.5 0-.39-.15-.73-.39-1-.23-.27-.38-.62-.38-1 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-4.96-4.49-9-10-9Z" /></svg>
+        <span class="topbar__design-label">Design</span>
+      </button>
       <button class="btn btn--ghost topbar__new" type="button" data-action="new"><svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>New</button>
       <button class="btn btn--primary topbar__download" type="button" data-action="download"><svg class="icon icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg>Download PDF</button>
     </div>
@@ -114,7 +118,7 @@
   <main id="main" class="main" tabindex="-1">
     <h1 class="sr-only">Invoicer — free online invoice generator with PDF export</h1>
 
-    <form id="editor" class="sheet" novalidate aria-label="Invoice">
+    <form id="editor" class="sheet" data-design="minimal" novalidate aria-label="Invoice">
       <div class="sheet__head">
         <h2 class="sheet__title">Invoice</h2>
         <div class="sheet__meta">
@@ -218,6 +222,46 @@
   </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <dialog id="design" class="design" aria-labelledby="design-title">
+    <div class="design__inner">
+      <div class="design__head">
+        <h2 id="design-title" class="design__title">Design</h2>
+        <button id="design-close" class="about__close" type="button" aria-label="Close dialog">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+        </button>
+      </div>
+      <fieldset class="design__group">
+        <legend class="design__legend">Layout</legend>
+        <div class="design__cards">
+          <label class="design-card">
+            <input class="design-card__input sr-only" type="radio" name="design" value="minimal" />
+            <span class="design-card__preview"><svg class="thumb" viewBox="0 0 80 104" aria-hidden="true"><rect class="thumb__paper" width="80" height="104" rx="2"/><rect class="thumb__ink" x="8" y="10" width="26" height="6" rx="1"/><rect class="thumb__grey" x="46" y="10" width="26" height="3"/><rect class="thumb__grey" x="46" y="15" width="26" height="3"/><rect class="thumb__grey" x="8" y="30" width="26" height="3"/><rect class="thumb__grey" x="46" y="30" width="26" height="3"/><rect class="thumb__accent" x="8" y="46" width="64" height="1"/><rect class="thumb__grey" x="8" y="54" width="64" height="1"/><rect class="thumb__grey" x="8" y="62" width="64" height="1"/><rect class="thumb__grey" x="8" y="70" width="64" height="1"/><rect class="thumb__accent" x="44" y="82" width="28" height="1"/><rect class="thumb__ink" x="44" y="87" width="28" height="4"/></svg></span>
+            <span class="design-card__name">Minimal</span>
+          </label>
+          <label class="design-card">
+            <input class="design-card__input sr-only" type="radio" name="design" value="classic" />
+            <span class="design-card__preview"><svg class="thumb" viewBox="0 0 80 104" aria-hidden="true"><rect class="thumb__paper" width="80" height="104" rx="2"/><rect class="thumb__accent" x="8" y="10" width="26" height="6" rx="1"/><rect class="thumb__grey" x="46" y="10" width="26" height="3"/><rect class="thumb__grey" x="46" y="15" width="26" height="3"/><rect class="thumb__accent" x="8" y="22" width="64" height="1"/><rect class="thumb__grey" x="8" y="32" width="26" height="3"/><rect class="thumb__grey" x="46" y="32" width="26" height="3"/><rect class="thumb__accent" x="8" y="46" width="64" height="1"/><rect class="thumb__grey" x="8" y="50" width="30" height="2"/><rect class="thumb__accent" x="8" y="56" width="64" height="1"/><rect class="thumb__grey" x="8" y="64" width="64" height="1"/><rect class="thumb__grey" x="8" y="72" width="64" height="1"/><rect class="thumb__accent" x="44" y="82" width="28" height="1"/><rect class="thumb__ink" x="44" y="87" width="28" height="4"/></svg></span>
+            <span class="design-card__name">Classic</span>
+          </label>
+          <label class="design-card">
+            <input class="design-card__input sr-only" type="radio" name="design" value="modern" />
+            <span class="design-card__preview"><svg class="thumb" viewBox="0 0 80 104" aria-hidden="true"><rect class="thumb__paper" width="80" height="104" rx="2"/><rect class="thumb__accent" width="80" height="4"/><rect class="thumb__accent" x="8" y="12" width="26" height="6" rx="1"/><rect class="thumb__grey" x="46" y="12" width="26" height="3"/><rect class="thumb__grey" x="46" y="17" width="26" height="3"/><rect class="thumb__grey" x="8" y="32" width="26" height="3"/><rect class="thumb__grey" x="46" y="32" width="26" height="3"/><rect class="thumb__accent" x="8" y="46" width="30" height="2"/><rect class="thumb__accent" x="8" y="51" width="64" height="1"/><rect class="thumb__band" x="8" y="59" width="64" height="8"/><rect class="thumb__band" x="8" y="75" width="64" height="8"/><rect class="thumb__accent" x="44" y="88" width="28" height="4"/></svg></span>
+            <span class="design-card__name">Modern</span>
+          </label>
+          <label class="design-card">
+            <input class="design-card__input sr-only" type="radio" name="design" value="bold" />
+            <span class="design-card__preview"><svg class="thumb" viewBox="0 0 80 104" aria-hidden="true"><rect class="thumb__paper" width="80" height="104" rx="2"/><rect class="thumb__ink" x="8" y="9" width="40" height="10" rx="1"/><rect class="thumb__grey" x="52" y="12" width="20" height="3"/><rect class="thumb__accent" x="8" y="23" width="64" height="2"/><rect class="thumb__grey" x="8" y="34" width="26" height="3"/><rect class="thumb__grey" x="46" y="34" width="26" height="3"/><rect class="thumb__accent" x="8" y="48" width="64" height="8"/><rect class="thumb__grey" x="8" y="62" width="64" height="1"/><rect class="thumb__grey" x="8" y="70" width="64" height="1"/><rect class="thumb__accent" x="40" y="82" width="32" height="10"/></svg></span>
+            <span class="design-card__name">Bold</span>
+          </label>
+        </div>
+      </fieldset>
+      <fieldset class="design__group">
+        <legend class="design__legend">Accent colour</legend>
+        <div id="swatches" class="swatches"></div>
+      </fieldset>
+    </div>
+  </dialog>
 
   <dialog id="about" class="about" aria-labelledby="about-title">
     <div class="about__inner">

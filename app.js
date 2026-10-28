@@ -8,6 +8,17 @@
   const LOCALE_BY_CURRENCY = { GBP: "en-GB", USD: "en-US" };
   const THEME_COLOR = { light: "#ffffff", dark: "#09090b" };
   const DEFAULT_DUE_DAYS = 14;
+  const DESIGNS = ["minimal", "classic", "modern", "bold"];
+  const DEFAULT_DESIGN = "minimal";
+  const ACCENTS = [
+    { id: "ink", label: "Ink", hex: "#18181b" },
+    { id: "blue", label: "Blue", hex: "#1d4ed8" },
+    { id: "teal", label: "Teal", hex: "#0f766e" },
+    { id: "green", label: "Green", hex: "#15803d" },
+    { id: "red", label: "Red", hex: "#b91c1c" },
+    { id: "violet", label: "Violet", hex: "#6d28d9" },
+  ];
+  const DEFAULT_ACCENT = ACCENTS[0].hex;
   const MOBILE_QUERY = "(max-width: 640px)";
   const SHEET_QUERY = "(min-width: 860px)";
   const A4_RATIO = 297 / 210;
@@ -64,6 +75,8 @@
     tax: 0,
     notes: "",
     remember: false,
+    design: DEFAULT_DESIGN,
+    accent: DEFAULT_ACCENT,
   });
 
   function newItem() {
@@ -82,6 +95,8 @@
       const parsed = JSON.parse(raw);
       const merged = { ...defaultState(), ...parsed };
       if (!Array.isArray(merged.items) || merged.items.length === 0) merged.items = [newItem()];
+      if (!DESIGNS.includes(merged.design)) merged.design = DEFAULT_DESIGN;
+      if (!ACCENTS.some((x) => x.hex === merged.accent)) merged.accent = DEFAULT_ACCENT;
       return merged;
     } catch {
       return defaultState();
@@ -444,7 +459,7 @@
 
     newInvoice() {
       if (!confirm("Start a new invoice? Current data will be cleared.")) return;
-      const fresh = defaultState();
+      const fresh = { ...defaultState(), design: state.design, accent: state.accent };
       const saved = state.remember ? loadSavedDetails() : null;
       if (saved) {
         fresh.from = { ...fresh.from, ...saved.from };
@@ -456,6 +471,62 @@
       renderAll();
       const first = $("#from-name");
       if (first && !isMobile()) first.focus({ preventScroll: true });
+    },
+  };
+
+  /* ---------- Design (layout + accent) ---------- */
+  const Design = {
+    dialog: $("#design"),
+    swatchesEl: $("#swatches"),
+
+    init() {
+      Design.buildSwatches();
+      on($("#open-design"), "click", Design.open);
+      on($("#design-close"), "click", Design.close);
+      on(Design.dialog, "click", (e) => { if (e.target === Design.dialog) Design.close(); });
+      $$('input[name="design"]').forEach((r) => on(r, "change", () => Design.set({ design: r.value })));
+      Design.apply();
+    },
+
+    buildSwatches() {
+      ACCENTS.forEach((a) => {
+        const label = document.createElement("label");
+        label.className = "swatch";
+        label.innerHTML = '<input class="swatch__input sr-only" type="radio" name="accent" /><span class="swatch__dot"></span><span class="sr-only"></span>';
+        const input = label.querySelector("input");
+        input.value = a.hex;
+        label.querySelector(".sr-only:last-child").textContent = a.label;
+        label.querySelector(".swatch__dot").style.setProperty("--swatch", a.hex);
+        on(input, "change", () => Design.set({ accent: a.hex }));
+        Design.swatchesEl.appendChild(label);
+      });
+    },
+
+    set(patch) {
+      Object.assign(state, patch);
+      saveState();
+      Design.apply();
+    },
+
+    apply() {
+      sheetEl.dataset.design = state.design;
+      document.documentElement.style.setProperty("--doc-accent", state.accent);
+      $$('input[name="design"]').forEach((r) => { r.checked = r.value === state.design; });
+      $$('input[name="accent"]').forEach((r) => { r.checked = r.value === state.accent; });
+      updatePageGuides();
+    },
+
+    open() {
+      if (typeof Design.dialog.showModal === "function") Design.dialog.showModal();
+      else Design.dialog.setAttribute("open", "");
+      const checked = $('input[name="design"]:checked', Design.dialog);
+      if (checked) checked.focus();
+    },
+
+    close() {
+      if (typeof Design.dialog.close === "function") Design.dialog.close();
+      else Design.dialog.removeAttribute("open");
+      $("#open-design").focus({ preventScroll: true });
     },
   };
 
@@ -507,6 +578,7 @@
   Theme.init();
   Actions.init();
   About.init();
+  Design.init();
   bindFields();
   renderItems();
   layout();
