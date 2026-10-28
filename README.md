@@ -18,7 +18,7 @@ A lightweight, client-side invoice generator for freelancers and small businesse
 
 ## Design
 
-Minimal paper-on-grey layout: Geist type, neutral tokens, a single dark primary action. The sheet stays light in dark mode so it matches the PDF. All colours, spacing, radii and z-indices are CSS custom properties on `:root`; class names follow BEM.
+Benchmarked on the [farhan.app UI library](https://ui-library.farhan.app/): the same token set (4px spacing scale with density / roundness / type knobs, semantic light and dark colours, radii, motion, control heights), Geist + JetBrains Mono, mono uppercase eyebrow labels, press-scale buttons, soft-halo inputs, a blurred sticky nav and a dot-grid canvas. Light is the default with a dark toggle. The A4 sheet stays light in both themes so it matches the PDF. Class names follow BEM.
 
 ## Accessibility
 
