@@ -1,0 +1,23 @@
+/* Buttons (library: primary / ghost / subtle, press-scale) */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  height: var(--control-h-md); padding: 0 var(--space-4);
+  border: 1px solid transparent; border-radius: var(--radius-control);
+  background: transparent; font-size: var(--text-base); font-weight: var(--weight-medium); white-space: nowrap;
+  user-select: none; -webkit-user-select: none;
+  transition: background-color var(--duration-base) var(--ease-soft), border-color var(--duration-base) var(--ease-soft), color var(--duration-base) var(--ease-soft), transform var(--duration-base) var(--ease-soft), opacity var(--duration-base);
+}
+.btn:active { transform: scale(.96); }
+.btn:disabled { opacity: .3; cursor: progress; pointer-events: none; }
+.btn--primary { background: var(--accent); color: var(--on-accent); box-shadow: 0 0 20px -3px rgba(var(--fg-rgb), .15); }
+.btn--primary:hover { opacity: .92; }
+.btn--ghost { color: var(--text-secondary); }
+.btn--ghost:hover { background: var(--accent-subtle); color: var(--text-primary); }
+.btn--icon { width: var(--control-h-md); padding: 0; }
+.btn--subtle { color: var(--paper-muted); }
+.btn--subtle:hover { background: var(--paper-field); color: var(--paper-text); }
+
+@media (max-width: 640px) {
+  .btn { min-height: 44px; }
+}

@@ -1,0 +1,16 @@
+/* Page layout: the main canvas */
+
+.main { flex: 1; background-image: radial-gradient(circle, var(--dot) 1px, transparent 1px); background-size: 24px 24px; display: flex; flex-direction: column; align-items: center; padding: var(--space-6) var(--space-4) var(--space-8); outline: none; }
+.main__hint { margin-top: var(--space-4); font: var(--weight-regular) var(--text-xs)/1.4 var(--font-mono); color: var(--text-secondary); text-align: center; }
+
+@media (min-width: 860px) {
+  .main { padding: var(--space-8) var(--space-6) var(--space-12); }
+}
+
+@media (min-width: 641px) and (max-width: 859px) {
+  .main { padding: var(--space-6); }
+}
+
+@media (max-width: 640px) {
+  .main { padding: var(--space-3) 0 var(--space-6); }
+}

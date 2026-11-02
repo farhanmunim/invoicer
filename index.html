@@ -51,13 +51,56 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
-  <script src="theme-init.js"></script>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/buttons.css" />
+  <link rel="stylesheet" href="css/forms.css" />
+  <link rel="stylesheet" href="css/topbar.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/sheet.css" />
+  <link rel="stylesheet" href="css/designs.css" />
+  <link rel="stylesheet" href="css/footer.css" />
+  <link rel="stylesheet" href="css/dock.css" />
+  <link rel="stylesheet" href="css/toast.css" />
+  <link rel="stylesheet" href="css/dialog.css" />
+  <link rel="stylesheet" href="css/design-dialog.css" />
+  <link rel="stylesheet" href="css/about-dialog.css" />
+  <link rel="stylesheet" href="css/print.css" />
+  <link rel="modulepreload" href="js/about.js" />
+  <link rel="modulepreload" href="js/actions.js" />
+  <link rel="modulepreload" href="js/calc.js" />
+  <link rel="modulepreload" href="js/coerce.js" />
+  <link rel="modulepreload" href="js/config.js" />
+  <link rel="modulepreload" href="js/dates.js" />
+  <link rel="modulepreload" href="js/design.js" />
+  <link rel="modulepreload" href="js/dom.js" />
+  <link rel="modulepreload" href="js/fields.js" />
+  <link rel="modulepreload" href="js/format.js" />
+  <link rel="modulepreload" href="js/items.js" />
+  <link rel="modulepreload" href="js/layout.js" />
+  <link rel="modulepreload" href="js/model.js" />
+  <link rel="modulepreload" href="js/pdf-delivery.js" />
+  <link rel="modulepreload" href="js/pdf/colors.js" />
+  <link rel="modulepreload" href="js/pdf/constants.js" />
+  <link rel="modulepreload" href="js/pdf/context.js" />
+  <link rel="modulepreload" href="js/pdf/designs.js" />
+  <link rel="modulepreload" href="js/pdf/header.js" />
+  <link rel="modulepreload" href="js/pdf/index.js" />
+  <link rel="modulepreload" href="js/pdf/notes.js" />
+  <link rel="modulepreload" href="js/pdf/table.js" />
+  <link rel="modulepreload" href="js/pdf/text.js" />
+  <link rel="modulepreload" href="js/pdf/totals.js" />
+  <link rel="modulepreload" href="js/render.js" />
+  <link rel="modulepreload" href="js/storage.js" />
+  <link rel="modulepreload" href="js/store.js" />
+  <link rel="modulepreload" href="js/theme.js" />
+  <link rel="modulepreload" href="js/toast.js" />
+  <link rel="modulepreload" href="js/totals-view.js" />
+  <script src="js/boot/theme-init.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
-  <script src="invoice-pdf.js" defer></script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y64DWW0PYN"></script>
-  <script src="analytics.js" defer></script>
+  <script src="js/boot/analytics.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to invoice</a>
@@ -216,7 +259,7 @@
     <div class="design__inner">
       <div class="design__head">
         <h2 id="design-title" class="design__title">Design</h2>
-        <button id="design-close" class="about__close" type="button" aria-label="Close dialog">
+        <button id="design-close" class="dialog-close" type="button" aria-label="Close dialog">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
         </button>
       </div>
@@ -267,7 +310,7 @@
             <p class="about__subtitle">Simple invoices, instantly</p>
           </div>
         </div>
-        <button id="about-close" class="about__close" type="button" aria-label="Close dialog">
+        <button id="about-close" class="dialog-close" type="button" aria-label="Close dialog">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
         </button>
       </div>
@@ -323,6 +366,6 @@
     </li>
   </template>
 
-  <script src="app.js" defer></script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

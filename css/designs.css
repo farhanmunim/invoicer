@@ -1,0 +1,55 @@
+/* Designs: monotone, one accent (--doc-accent). Keep in step with DESIGNS in js/pdf/designs.js. */
+
+.sheet[data-design="modern"]::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 6px;
+  background: var(--doc-accent); border-radius: inherit;
+}
+.sheet[data-design="modern"] .sheet__title,
+.sheet[data-design="modern"] .items__head,
+.sheet[data-design="modern"] .totals__row--grand,
+.sheet[data-design="modern"] .totals__row--grand dt { color: var(--doc-accent); }
+.sheet[data-design="modern"] .items__head { font-weight: var(--weight-medium); }
+.sheet[data-design="modern"] .item { border-top-color: transparent; }
+.sheet[data-design="modern"] .item:nth-child(even) { background: color-mix(in srgb, var(--doc-accent) 7%, var(--paper)); }
+.sheet[data-design="modern"] .item:last-child { border-bottom-color: var(--paper-line); }
+
+.sheet[data-design="bold"] .sheet__title { font-size: var(--text-4xl); font-weight: 800; text-transform: uppercase; letter-spacing: var(--tracking-tight-heading); }
+.sheet[data-design="bold"] .sheet__rule { height: 4px; background: var(--doc-accent); }
+.sheet[data-design="bold"] .sheet__hero { display: flex; flex-direction: column; gap: var(--space-1-5); }
+.sheet[data-design="modern"] .sheet__rule { display: none; }
+.sheet[data-design="bold"] .items__head { padding: var(--space-2); border: 0; background: var(--doc-accent); color: #fff; }
+.sheet[data-design="bold"] .totals__row--grand { margin-top: var(--space-3); padding: var(--space-3); border: 0; background: var(--doc-accent); color: #fff; }
+.sheet[data-design="bold"] .totals__row--grand dt { color: #fff; }
+
+@media (min-width: 860px) {
+  .sheet[data-design="bold"] .sheet__title { font-size: 46px; }
+  .sheet[data-design="modern"] .item { margin-inline: calc(-1 * var(--space-2)); padding-inline: var(--space-2); }
+  .sheet[data-design="bold"] .item { padding-inline: var(--space-2); }
+}
+
+/* Layout per design (desktop). Mobile keeps the single column. */
+@media (min-width: 860px) {
+  /* Modern: letterhead. From top-left, title top-right, bill-to left, meta stacked right */
+  .sheet[data-design="modern"] .party--from { grid-area: 1 / 1 / 2 / 2; }
+  .sheet[data-design="modern"] .sheet__title { grid-area: 1 / 2 / 2 / 3; text-align: right; }
+  .sheet[data-design="modern"] .party--to { grid-area: 2 / 1 / 3 / 2; }
+  .sheet[data-design="modern"] .sheet__meta { grid-area: 2 / 2 / 3 / 3; justify-self: end; grid-template-columns: 190px; }
+  .sheet[data-design="modern"] #from-name { font-size: var(--text-xl); font-weight: var(--weight-bold); }
+
+  /* Bold: title + amount due, heavy rule, meta strip, parties */
+  .sheet[data-design="bold"] .sheet__title { grid-area: 1 / 1 / 2 / 2; align-self: end; }
+  .sheet[data-design="bold"] .sheet__hero { grid-area: 1 / 2 / 2 / 3; align-items: flex-end; text-align: right; }
+  .sheet[data-design="bold"] .sheet__hero-amount { font-size: 32px; }
+  .sheet[data-design="bold"] .sheet__rule { grid-area: 2 / 1 / 3 / 3; }
+  .sheet[data-design="bold"] .sheet__meta { grid-area: 3 / 1 / 4 / 3; justify-self: stretch; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sheet[data-design="bold"] .party--from { grid-area: 4 / 1 / 5 / 2; }
+  .sheet[data-design="bold"] .party--to { grid-area: 4 / 2 / 5 / 3; }
+
+  /* Centered: title and meta centred, rule, parties */
+  .sheet[data-design="centered"] .sheet__title { grid-area: 1 / 1 / 2 / 3; justify-self: center; }
+  .sheet[data-design="centered"] .sheet__meta { grid-area: 2 / 1 / 3 / 3; justify-self: center; grid-template-columns: 160px 150px 150px; text-align: center; }
+  .sheet[data-design="centered"] .sheet__meta .field__input { text-align: center; }
+  .sheet[data-design="centered"] .sheet__rule { grid-area: 3 / 1 / 4 / 3; }
+  .sheet[data-design="centered"] .party--from { grid-area: 4 / 1 / 5 / 2; }
+  .sheet[data-design="centered"] .party--to { grid-area: 4 / 2 / 5 / 3; }
+}

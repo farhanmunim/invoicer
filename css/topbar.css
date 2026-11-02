@@ -1,0 +1,27 @@
+/* Top bar: brand, actions, theme toggle */
+
+.topbar {
+  position: sticky; top: 0; z-index: var(--z-nav);
+  display: flex; align-items: center; gap: var(--space-3);
+  height: var(--topbar-h); padding: 0 var(--space-4);
+  background: rgba(var(--bg-rgb), .9); border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(var(--blur-md)); -webkit-backdrop-filter: blur(var(--blur-md));
+}
+.topbar__brand { display: flex; align-items: center; gap: var(--space-3); color: var(--text-primary); text-decoration: none; font-weight: var(--weight-semibold); letter-spacing: -.03em; font-size: var(--text-md); }
+.topbar__logo {
+  display: grid; place-items: center; width: 24px; height: 24px;
+  border-radius: var(--radius-sm); background: var(--accent); color: var(--on-accent);
+}
+.topbar__logo .icon { width: 14px; height: 14px; }
+.topbar__spacer { flex: 1; }
+.topbar__actions { display: flex; align-items: center; gap: var(--space-2); }
+
+.theme-toggle__dark { display: none; }
+:root[data-theme="dark"] .theme-toggle__light { display: none; }
+:root[data-theme="dark"] .theme-toggle__dark { display: block; }
+
+@media (max-width: 640px) {
+  .topbar__new, .topbar__download, .topbar__design-label { display: none; }
+  .topbar .btn--icon, .topbar__design { width: 44px; height: 44px; }
+  .topbar__brand { min-height: 44px; }
+}

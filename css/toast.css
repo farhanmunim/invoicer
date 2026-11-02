@@ -1,0 +1,18 @@
+/* Toast (transient message with optional action) */
+
+.toast {
+  position: fixed; left: 50%; bottom: var(--space-6); z-index: var(--z-toast);
+  max-width: calc(100vw - 2 * var(--space-4)); transform: translateX(-50%);
+  padding: var(--space-3) var(--space-4); border-radius: var(--radius-md);
+  background: var(--accent); color: var(--on-accent); font-size: var(--text-base);
+  box-shadow: var(--shadow-modal);
+}
+.toast { display: flex; align-items: center; gap: var(--space-3); }
+.toast[hidden] { display: none; }
+.toast__action { padding: var(--space-1) var(--space-2); border: 0; border-radius: var(--radius-sm); background: rgba(var(--bg-rgb), .18); color: inherit; font-weight: var(--weight-semibold); }
+.toast__action:hover { background: rgba(var(--bg-rgb), .3); }
+.toast__action[hidden] { display: none; }
+
+@media (max-width: 640px) {
+  .toast { bottom: calc(var(--dock-h) + var(--space-3) + env(safe-area-inset-bottom)); }
+}

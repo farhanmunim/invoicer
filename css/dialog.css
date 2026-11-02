@@ -1,0 +1,4 @@
+/* Shared dialog parts */
+
+.dialog-close { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: var(--radius-md); background: none; color: var(--text-secondary); }
+.dialog-close:hover { background: var(--border); color: var(--text-primary); }
